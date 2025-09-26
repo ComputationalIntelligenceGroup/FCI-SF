@@ -9,10 +9,9 @@ import numpy as np
 from causallearn.graph.GeneralGraph import GeneralGraph
 from causallearn.graph.Node import Node
 from causallearn.utils.cit import *
-from IncrementalGraph import IncrementalGraph
 from causallearn.utils.GraphUtils    import GraphUtils
 
-
+from IncrementalGraph import IncrementalGraph
 
 
 

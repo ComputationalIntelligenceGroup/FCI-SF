@@ -42,7 +42,7 @@ class IncrementalGraph:
             node.add_attribute("id", id )
             new_nodes.append(node)
            
-        self.old_nodes = initial_graph.get_nodes()
+        self.old_nodes = initial_graph.get_nodes().copy()
         
         self.new_nodes = new_nodes
         
@@ -55,6 +55,33 @@ class IncrementalGraph:
         
         
        
+    
+    def add_node(self, node_name: str = None):
+        
+        if node_name is None:
+            name = "X%d" % (self.G.get_num_nodes() + 1)
+            
+        else: 
+            name = node_name
+            
+        node = GraphNode(name)
+        id: int = self.G.get_num_nodes()
+        node.add_attribute("id", id )
+        
+        
+        self.old_nodes.extend(self.new_nodes)
+        
+        self.new_nodes = [node]
+        
+        self.G.add_node(node)
+        
+    
+    def add_edge_with_circles(self, i: int, j: int):
+        
+        nodes = self.G.get_nodes()
+        
+        self.G.add_edge(Edge(nodes[i], nodes[j], Endpoint.CIRCLE, Endpoint.CIRCLE))
+        
         
         
         
@@ -93,14 +120,11 @@ class IncrementalGraph:
                 self.G.add_edge(new_edge)
                 
                 
-    def neighbors(self, i: int):
+    def neighbors(self, i: int) -> np.ndarray:
         """Find the neighbors of node i in adjmat"""
-
-        arr = np.where(self.G.graph[i, :] != 0)[0]
-        
-        idx = np.where(arr == i )[0][0]
-        
-        return np.delete(arr, idx)
+        return np.where(self.G.graph[i, :] != 0)[0]
+    
+    
         
     
     def max_degree(self) -> int:

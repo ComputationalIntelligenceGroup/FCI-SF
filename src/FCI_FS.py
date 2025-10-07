@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from typing import List, Set, Tuple, Dict
 from numpy import ndarray
+import time
 
 from causallearn.graph.Edge import Edge
 from causallearn.graph.Endpoint import Endpoint
@@ -19,7 +20,7 @@ from FAS_FS import fas_fs
 
 
 def oneSideElimByPossibleDsep(graph: Graph, independence_test_method: CIT,  node1: Node, node2: Node, edge: Edge,
-                              alpha: float, sep_sets: Dict[Tuple[int, int], Set[int]], old_nodes = None ):
+                              alpha: float, sep_sets: Dict[Tuple[int, int], Set[int]], old_nodes = None ) -> Tuple[int, int]:
     
     def _contains_all(set_a: Set[Node], set_b: Set[Node]):
         for node_b in set_b:
@@ -27,16 +28,23 @@ def oneSideElimByPossibleDsep(graph: Graph, independence_test_method: CIT,  node
                 return False
         return True
     
+    num_CI = 0 
+    sep_size = 0
+    
     possibleDsep = fci.getPossibleDsep(node1, node2, graph, -1)
     gen = DepthChoiceGenerator(len(possibleDsep), len(possibleDsep))
 
     choice = gen.next()
     while choice is not None:
+        
+      
         origin_choice = choice
         choice = gen.next()
         if len(origin_choice) < 2:
             continue
         sepset = tuple([possibleDsep[index] for index in origin_choice])
+        
+       
         #Skip unnecesary independence tests
         if node1 in old_nodes and node2 in old_nodes and all (node in old_nodes for node in sepset):
             continue
@@ -46,36 +54,49 @@ def oneSideElimByPossibleDsep(graph: Graph, independence_test_method: CIT,  node
             continue
         X, Y = graph.get_node_map()[node1], graph.get_node_map()[node2]
         condSet_index = tuple([graph.get_node_map()[possibleDsep[index]] for index in origin_choice])
+        
+        num_CI += 1
+        sep_size += len(condSet_index)
+        
         p_value = independence_test_method(X, Y, condSet_index)
         independent = p_value > alpha
         if independent:
+          
             graph.remove_edge(edge)
             sep_sets[(X, Y)] = set(condSet_index)
             break
+    return num_CI, sep_size
 
 def removeByPossibleDsep(graph: Graph, independence_test_method: CIT, alpha: float,
-                         sep_sets: Dict[Tuple[int, int], Set[int]], old_nodes = None):
+                         sep_sets: Dict[Tuple[int, int], Set[int]], old_nodes = None) -> Tuple[int, int]:
     
+    num_CI = 0 
+    sep_size = 0
 
     edges = graph.get_graph_edges()
     for edge in edges:
         node_a = edge.get_node1()
         node_b = edge.get_node2()
         
-        oneSideElimByPossibleDsep(graph = graph, independence_test_method = independence_test_method,  node1 = node_a, node2 = node_b, 
+        nCI, sep_s = oneSideElimByPossibleDsep(graph = graph, independence_test_method = independence_test_method,  node1 = node_a, node2 = node_b, 
                                    edge = edge, alpha = alpha, sep_sets = sep_sets, old_nodes = old_nodes )
+        num_CI += nCI
+        sep_size += sep_s
 
         if graph.contains_edge(edge):
-            
-            oneSideElimByPossibleDsep(graph = graph, independence_test_method = independence_test_method,  node1 = node_b, node2 = node_a, 
+            nCI, sep_s = oneSideElimByPossibleDsep(graph = graph, independence_test_method = independence_test_method,  node1 = node_b, node2 = node_a, 
                                        edge = edge, alpha = alpha, sep_sets = sep_sets, old_nodes = old_nodes )
                 
-
+            num_CI += nCI
+            sep_size += sep_s
+            
+    return num_CI, sep_size
 
 
 def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float = 0.05, 
-           initial_sep_sets: Dict[Tuple[int, int], Set[int]] = {}, initial_graph: GeneralGraph = GeneralGraph([]), 
-           depth: int = -1, max_path_length: int = -1, verbose: bool = False, new_node_names:List[str] = None, **kwargs) -> Tuple[Graph, List[Edge]]:
+           initial_sep_sets: Dict[Tuple[int, int], Set[int]] = None, initial_graph: GeneralGraph = None, 
+           depth: int = -1, max_path_length: int = -1, verbose: bool = False, new_node_names:List[str] = None, 
+           **kwargs) -> Tuple[Graph, List[Edge], Dict[Tuple(int, int), Set[int]], int, float, float]:
     """
     Perform Fast Causal Inference (FCI) algorithm for causal discovery
 
@@ -111,10 +132,30 @@ def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float
             there is no latent confounder.
         If edge.properties have the Property 'pd', then it is possibly direct. Otherwise,
             it is definitely direct.
+            
+    sepsets: Dict[Tuple(int, int), Set[int]]
+        Gives the sepset (if they exists) of two nonadjacent features.
+        
+    num_CI_tests: int
+        Number of performed CI tests
+    
+    avg_sepset_size: float
+        Average sepset size
+    
+    total_exec_time: float
     """
-
+    num_CI_tests = 0
+    sepset_size = 0
+    initial_time = time.time()
+    
     if dataset.shape[0] < dataset.shape[1]:
         warnings.warn("The number of features is much larger than the sample size!")
+        
+    if initial_graph is None:
+        initial_graph = GeneralGraph([])
+            
+    if initial_sep_sets is None:
+        initial_sep_sets = {}
 
     independence_test_method = CIT(dataset, method=independence_test_method, **kwargs)
 
@@ -133,8 +174,11 @@ def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float
    
 
     # FAS (“Fast Adjacency Search”) is the adjacency search of the PC algorithm, used as a first step for the FCI algorithm.
-    graph, sep_sets, test_results = fas_fs(dataset, independence_test_method=independence_test_method, alpha=alpha,
+    graph, sep_sets, num_CI, sep_size = fas_fs(dataset, independence_test_method=independence_test_method, alpha=alpha, 
+                                           initial_graph= initial_graph, initial_sep_sets = initial_sep_sets,
                                          depth=depth, verbose=verbose, new_node_names = new_node_names)
+    num_CI_tests += num_CI
+    sepset_size += sep_size
     
     nodes = graph.get_nodes()
     
@@ -146,7 +190,10 @@ def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float
 
     fci.rule0(graph, nodes, sep_sets, None, verbose)
 
-    removeByPossibleDsep(graph, independence_test_method, alpha, sep_sets, old_nodes)
+    num_CI, sep_size = removeByPossibleDsep(graph, independence_test_method, alpha, sep_sets, old_nodes)
+    
+    num_CI_tests += num_CI
+    sepset_size += sep_size
 
     fci.reorientAllWith(graph, Endpoint.CIRCLE)
     fci.rule0(graph, nodes, sep_sets, None, verbose)
@@ -188,5 +235,8 @@ def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float
     graph.set_pag(True)
 
     edges = fci.get_color_edges(graph)
+    
+    avg_sepset_size = sepset_size/num_CI_tests
+    total_exec_time = time.time() - initial_time
 
-    return graph, edges, sep_sets
+    return graph, edges, sep_sets, num_CI_tests, avg_sepset_size, total_exec_time

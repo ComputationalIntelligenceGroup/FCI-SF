@@ -1,19 +1,26 @@
 from __future__ import annotations
 
 import warnings
-from typing import List
+from typing import List, Tuple
 from numpy import ndarray
 import numpy as np
+import time
 
 from causallearn.graph.Graph import Graph
 from causallearn.graph.GeneralGraph import GeneralGraph 
 from causallearn.utils.cit import *
 
 from IncrementalGraph import IncrementalGraph
+import hill_climbing as hc
 
-def prcdsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float = 0.05,  initial_graph: GeneralGraph = GeneralGraph([]),  verbose: bool = False,  new_node_names:List[str] = None, **kwargs) -> Graph:
+def prcdsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float = 0.05,  
+              max_iter = 1e4, initial_graph: GeneralGraph = None,  verbose: bool = False,  new_node_names:List[str] = None,
+              **kwargs) -> Tuple[Graph, int, float, float]:
     
     # Initialization
+    num_CI_tests = 0
+    sepset_size = 0
+    initial_time = time.time()
     
     if type(data) != np.ndarray:
         raise TypeError("'data' must be 'np.ndarray' type!")
@@ -24,6 +31,9 @@ def prcdsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float
         
     if type(alpha) != float or alpha <= 0 or alpha >= 1:
         raise TypeError("'alpha' must be 'float' type and between 0 and 1!")
+        
+    if initial_graph is None:
+        initial_graph = GeneralGraph([])
 
     independence_test_method = CIT(data, method=independence_test_method, **kwargs)
     mb = IncrementalGraph(0, initial_graph)
@@ -42,10 +52,13 @@ def prcdsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float
             
             S = tuple() if mb.neighbors(i) == [] else tuple(mb.neighbors(i))
             
+            num_CI_tests += 1
+            sepset_size += len(S)
+            
             p_value = independence_test_method(j, i, S)
             if p_value < alpha:
                 if verbose:
-                    print('%s ind %s  with p-value %f\n' % (j, i, p_value))
+                    print('%s not ind %s  with p-value %f\n' % (j, i, p_value))
                 mb.add_edge_with_circles(i, j)
                 
          #Redundancy analysis
@@ -55,14 +68,21 @@ def prcdsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float
                 
                 S = tuple((x for x in mb.neighbors(i) if x != k))
                 
-                p_value = independence_test_method(i, k, S)
+                num_CI_tests += 1
+                sepset_size += len(S)
                 
+                p_value = independence_test_method(i, k, S)
                 if p_value >= alpha:
                     if verbose:
                         print('%s ind %s  with p-value %f\n' % (j, i, p_value))
-                    mb.remove_if_exists(i, j)
+                    mb.remove_if_exists(i, k)
                     
-    return mb.G
+    mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)
+    
+    avg_sepset_size = sepset_size/num_CI_tests
+    total_exec_time = time.time() - initial_time
+    
+    return mb.G, num_CI_tests, avg_sepset_size, total_exec_time
 
 """
 Bibliography

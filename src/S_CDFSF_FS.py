@@ -4,6 +4,7 @@ import warnings
 from typing import List, Set, Tuple, Dict
 from numpy import ndarray
 import numpy as np
+import time
 
 from causallearn.graph.Graph import Graph
 from causallearn.graph.GeneralGraph import GeneralGraph 
@@ -11,10 +12,17 @@ from causallearn.utils.cit import *
 
 from IncrementalGraph import IncrementalGraph
 from exists_separator import _exists_separator
+import hill_climbing as hc
 
-def s_cdfsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float = 0.05,  initial_graph: GeneralGraph = GeneralGraph([]),  verbose: bool = False,  new_node_names:List[str] = None, **kwargs) -> Graph:
+def s_cdfsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float = 0.05,  
+              max_iter = 1e4,  initial_graph: GeneralGraph = None,  verbose: bool = False,  new_node_names:List[str] = None, 
+               **kwargs) -> Tuple[Graph, int, float, float]:
     
     # Initialization
+    
+    num_CI_tests = 0
+    sepset_size = 0
+    initial_time = time.time()
     
     if type(data) != np.ndarray:
         raise TypeError("'data' must be 'np.ndarray' type!")
@@ -25,6 +33,9 @@ def s_cdfsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: floa
         
     if type(alpha) != float or alpha <= 0 or alpha >= 1:
         raise TypeError("'alpha' must be 'float' type and between 0 and 1!")
+        
+    if initial_graph is None:
+        initial_graph = GeneralGraph([])
 
     independence_test_method = CIT(data, method=independence_test_method, **kwargs)
     mb = IncrementalGraph(0, initial_graph)
@@ -45,18 +56,29 @@ def s_cdfsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: floa
         # Discovering phase
         for t in range(i):
             mb_t =mb.neighbors(t)
-            if not _exists_separator(mb, t, i, mb_t, independence_test_method, alpha, ()):
+            existis_sep, num_CI, sep_size = _exists_separator(graph = mb, x = t, y = i, mb_x = mb_t, independence_test_method = independence_test_method, alpha = alpha, must_be = (), verbose = verbose)
+            num_CI_tests += num_CI
+            sepset_size += sep_size
+            
+            if not existis_sep:
                 mb.add_edge_with_circles(t, i)
                 
         for t in range(i):
             for y in mb.neighbors(t):
                 mb_t = [x for x in mb.neighbors(t) if x != y ]
-                if  _exists_separator(mb, t, y, mb_t, independence_test_method, alpha, ()):
+                existis_sep, num_CI, sep_size = _exists_separator(graph = mb, x= t, y = y, mb_x = mb_t, independence_test_method = independence_test_method, alpha = alpha, must_be = (), verbose = verbose)
+                num_CI_tests += num_CI
+                sepset_size += sep_size
+                if  existis_sep:
                     # note that by construction if Y in CPC(T) then T is in CPC(Y), thus the second if in shrinking phase in the S-CDFSF from Yu, et al. (2012) is unnecessary.
                     mb.remove_if_exists(t, i) 
                     
-        
-    return mb.G
+    mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)    
+    
+    avg_sepset_size = sepset_size/num_CI_tests
+    total_exec_time = time.time() - initial_time
+    
+    return mb.G, num_CI_tests, avg_sepset_size, total_exec_time
     
 """
 Bibliography

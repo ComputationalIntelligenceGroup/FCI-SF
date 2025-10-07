@@ -12,13 +12,17 @@ from causallearn.graph.GraphNode import GraphNode
 from causallearn.graph.Node import Node
 import numpy as np
 
+import auxiliary as aux
 
 
 
 
 class IncrementalGraph:
     
-    def __init__(self, no_of_var: int, initial_graph: GeneralGraph = GeneralGraph([]),  new_node_names: List[str] = None):
+    def __init__(self, no_of_var: int, initial_graph: GeneralGraph = None,  new_node_names: List[str] = None):
+        
+        if initial_graph is None:
+            initial_graph = GeneralGraph([]) 
         
         if new_node_names is None:
             new_node_names: List[str] = []
@@ -28,7 +32,7 @@ class IncrementalGraph:
                 new_node_names.append(name)
                 
         else:
-            assert len(new_node_names) == no_of_var, "number of new_node_names  must match number of variables"
+            assert len(new_node_names) == no_of_var, "number of new_node_names %s  must match number of variables %s " % (len(new_node_names), no_of_var)
         
         
         assert (len(new_node_names) + initial_graph.get_num_nodes()) == len(set(new_node_names).union(set(initial_graph.get_node_names()))), "Every node in the graph must have a unique name"
@@ -60,7 +64,6 @@ class IncrementalGraph:
         
         if node_name is None:
             name = "X%d" % (self.G.get_num_nodes() + 1)
-            
         else: 
             name = node_name
             
@@ -68,18 +71,14 @@ class IncrementalGraph:
         id: int = self.G.get_num_nodes()
         node.add_attribute("id", id )
         
-        
         self.old_nodes.extend(self.new_nodes)
-        
         self.new_nodes = [node]
-        
         self.G.add_node(node)
         
     
     def add_edge_with_circles(self, i: int, j: int):
         
         nodes = self.G.get_nodes()
-        
         self.G.add_edge(Edge(nodes[i], nodes[j], Endpoint.CIRCLE, Endpoint.CIRCLE))
         
         
@@ -133,13 +132,8 @@ class IncrementalGraph:
     
     def get_numerical_edges(self) -> List[Tuple[int, int]]:
         """Returns all the edges from the incremental graph"""
-        res: List[Tuple[int, int]] = []
-        for edge in self.G.get_graph_edges():
-            numerical_edge = (self.G.node_map[edge.get_node1()], self.G.node_map[edge.get_node2()])
-            
-            res.append(numerical_edge)
         
-        return res
+        return aux.get_numerical_edges(self.G)
             
     def remove_if_exists(self, x: int, y: int) -> None:
         edge = self.G.get_edge(self.G.nodes[x], self.G.nodes[y])

@@ -7,9 +7,8 @@ from itertools import chain, combinations
 import numpy as np
 
 from causallearn.graph.GeneralGraph import GeneralGraph
-from causallearn.graph.Node import Node
 from causallearn.utils.cit import *
-from causallearn.utils.GraphUtils    import GraphUtils
+
 
 from IncrementalGraph import IncrementalGraph
 
@@ -18,9 +17,9 @@ from IncrementalGraph import IncrementalGraph
 
 
 def fas_fs(data: ndarray,  independence_test_method: CIT_Base, alpha: float = 0.05, 
-           initial_sep_sets: Dict[Tuple[int, int], Set[int]] = {}, initial_graph: GeneralGraph = GeneralGraph([]), 
+           initial_sep_sets: Dict[Tuple[int, int], Set[int]] = None, initial_graph: GeneralGraph = None, 
            depth: int = -1, verbose: bool = False, stable: bool = True, new_node_names: List[str] = None) -> Tuple[
-    GeneralGraph, Dict[Tuple[int, int], Set[int]], Dict[Tuple[int, int, Set[int]], float]]:
+    GeneralGraph, Dict[Tuple[int, int], Set[int]], int, int]:
     """
     Implements the "fast adjacency search" used in several causal algorithm in this file. In the fast adjacency
     search, at a given stage of the search, an edge X*-*Y is removed from the graph if X _||_ Y | S, where S is a subset
@@ -51,7 +50,8 @@ def fas_fs(data: ndarray,  independence_test_method: CIT_Base, alpha: float = 0.
     -------
     graph: Causal graph skeleton, where graph.graph[i,j] = graph.graph[j,i] = -1 indicates i --- j.
     initial_sep_sets: Separated sets of graph
-    test_results: Results of conditional independence tests
+    num_CI: Number of performed CI tests
+    sep_size: Sum of the size of all the conditioning sets that were used in each CI test
     """
     ## ------- check parameters ------------
     if type(data) != np.ndarray:
@@ -64,26 +64,38 @@ def fas_fs(data: ndarray,  independence_test_method: CIT_Base, alpha: float = 0.
         raise TypeError("'depth' must be 'int' type >= -1!")
     ## ------- end check parameters ------------
 
+    num_CI = 0
+    sep_size = 0
+    
+
     if depth == -1:
         depth = float('inf')
+        
+    if initial_graph is None:
+        
+        initial_graph = GeneralGraph([])
+        
+    if initial_sep_sets is None:
+        initial_sep_sets = {}
         
    
     # Initialize initial values and structures.
     
     num_old_vars = initial_graph.get_num_nodes()
-    
-    
-    
     num_new_vars = data.shape[1] - num_old_vars
+    
+
     
     
     
     sep_sets = initial_sep_sets
-    test_results: Dict[Tuple[int, int, Set[int]], float] = {}
+    
     
     inc_graph = IncrementalGraph( num_new_vars, initial_graph, new_node_names)
     
     inc_graph.initial_skeleton()
+    
+    
     
     current_depth: int = -1
     
@@ -110,7 +122,7 @@ def fas_fs(data: ndarray,  independence_test_method: CIT_Base, alpha: float = 0.
             ):
                 
                 
-                
+                #Skip repeating tests from previous iterations
                 if x < num_old_vars and y < num_old_vars and all (z < num_old_vars for z in separating_set):
                     continue
                     
@@ -118,8 +130,11 @@ def fas_fs(data: ndarray,  independence_test_method: CIT_Base, alpha: float = 0.
                 
                 # If a conditioning set exists remove the edge, store the
                 # separating set and move on to finding conditioning set for next edge.
+                num_CI += 1
+                sep_size += len(separating_set)
+                
                 p = independence_test_method(x, y, separating_set)
-                test_results[(x, y, separating_set)] = p
+                
                 
                 if p > alpha:
                     if verbose:
@@ -133,6 +148,6 @@ def fas_fs(data: ndarray,  independence_test_method: CIT_Base, alpha: float = 0.
                     break
                     
                 
-    return initial_graph, sep_sets, test_results
+    return initial_graph, sep_sets, num_CI, sep_size
     
     

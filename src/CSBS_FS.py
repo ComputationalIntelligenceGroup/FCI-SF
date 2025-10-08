@@ -6,6 +6,8 @@ from numpy import ndarray
 import numpy as np
 import time
 
+
+
 from causallearn.graph.Graph import Graph
 from causallearn.graph.GeneralGraph import GeneralGraph 
 
@@ -49,6 +51,9 @@ def csbs_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float =
         assert len(new_node_names) == num_new_vars, "number of new_node_names: %s  must match number of new variables: %s" % (len(new_node_names), num_new_vars)
         
     for t in range(num_new_vars):
+        
+        if verbose:
+            print(f"CSBS:{t}/{num_new_vars}")
         tempmb: List[int] = []
         j = mb.G.get_num_nodes()
         name = None if new_node_names is None else new_node_names[t]
@@ -92,7 +97,9 @@ def csbs_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float =
             
         for j_r, h_r in to_remove:
             mb.remove_if_exists(j_r, h_r)
-            
+    
+    if verbose:
+        print("CSBS: hill-climbing")
     mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)
         
     avg_sepset_size = sepset_size/num_CI_tests

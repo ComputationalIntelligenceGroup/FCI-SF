@@ -56,6 +56,8 @@ class IncrementalGraph:
             
         self.G = initial_graph
         
+        self.undirected()
+        
         
         
        

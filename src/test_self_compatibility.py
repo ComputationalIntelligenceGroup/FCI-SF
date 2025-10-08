@@ -4,10 +4,14 @@
 
 import sys, pathlib
 repo_root = pathlib.Path(__file__).resolve().parents[1]
-sys.path.append(str(repo_root / "src" / "external" / "causal-self-compatibility" / "src" ))
+ext_root = repo_root / "src" / "external" / "causal-self-compatibility"
 
-from causal_graphs.pag import PAG
-from self_compatibility import SelfCompatibilityScorer    # if you need the scorer
+# Make the directory that CONTAINS the 'src' folder importable
+sys.path.insert(0, str(ext_root))
+
+# Now import using the same prefix the package uses internally
+from src.causal_graphs.pag import PAG
+from src.self_compatibility import SelfCompatibilityScorer
 
 from causallearn.graph.GeneralGraph import GeneralGraph
 from causallearn.graph.GraphNode import GraphNode

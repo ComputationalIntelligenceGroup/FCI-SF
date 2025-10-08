@@ -39,20 +39,25 @@ def apply_permutation(a, p_rows=None, p_cols=None):
         out = out[..., order_cols]
     return out
 
-def random_permutation(n: int) -> List[int]:
+
+
+def random_permutation(size: int) -> List[int]:
     
-    numbers = np.arange(0, n)
-    
+    numbers = [i for i in range(size)]
     res = []
     
-    for _ in range(n):
-        j = random.randint(0, len(numbers)-1)
-        
-        res.append(numbers[j])
-        
-        numbers = np.delete(numbers, j)
+    for _ in range(size):
+        pos = random.random.randint(0, len(numbers)-1)
+        elem = numbers.pop(pos)
+        res.append(elem)
         
     return res
 
+
+
+    
+    
+    
+    
 
         

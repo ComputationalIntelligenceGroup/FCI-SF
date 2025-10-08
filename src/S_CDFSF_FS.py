@@ -47,6 +47,9 @@ def s_cdfsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: floa
     for t in range(num_new_vars):
         
         if verbose:
+            print(f"S-CDFSF: {t}/{num_new_vars}")
+        
+        if verbose:
             print("Going for var %s of  %s" % (t, num_new_vars))
         
         i = mb.G.get_num_nodes()
@@ -73,6 +76,10 @@ def s_cdfsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: floa
                     # note that by construction if Y in CPC(T) then T is in CPC(Y), thus the second if in shrinking phase in the S-CDFSF from Yu, et al. (2012) is unnecessary.
                     mb.remove_if_exists(t, i) 
                     
+    
+    if verbose:
+        print("S-CDFSF:: hill-climbing")
+        
     mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)    
     
     avg_sepset_size = sepset_size/num_CI_tests

@@ -43,6 +43,10 @@ def prcdsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float
         assert len(new_node_names) == num_new_vars, "number of new_node_names  must match number of new variables"
         
     for t in range(num_new_vars):
+        
+        if verbose:
+            print(f"PRCDSF: {t}/{num_new_vars}")
+            
         j = mb.G.get_num_nodes()
         name = None if new_node_names is None else new_node_names[t]
         mb.add_node(name)
@@ -76,7 +80,11 @@ def prcdsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float
                     if verbose:
                         print('%s ind %s  with p-value %f\n' % (j, i, p_value))
                     mb.remove_if_exists(i, k)
+    
                     
+    if verbose:
+        print("PRCDSF: hill-climbing")
+        
     mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)
     
     avg_sepset_size = sepset_size/num_CI_tests

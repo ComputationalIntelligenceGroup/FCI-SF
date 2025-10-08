@@ -12,64 +12,49 @@ Created on Sun Jan 26 19:26:47 2025
 @author: chdem
 """
 
-from pgmpy.models import BayesianNetwork
+
 
 
 import csv
 import numpy as np
 import time
-
 from datetime import datetime
 
-    
-    
+from causallearn.utils.cit           import fisherz      # ∼O(n³) linear-Gaussian CI test
+from causallearn.utils.GraphUtils    import GraphUtils
+from causallearn.graph.GeneralGraph import GeneralGraph 
+from cdt.data import AcyclicGraphGenerator
 
-    
+from CSBS_FS import csbs_fs
+from PRCDSF_FS import prcdsf_fs
+from S_CDFSF_FS import s_cdfsf_fs
+from FCI_FS import fci_fs
+import graphical_metrics as g_m
 
+
+import auxiliary as aux
 
 numPVal =  1
-
 filePath = f"../log{numPVal}.txt"
-
 fdLog = open(filePath, "w")
-
-
 
 now = datetime.now()
 print(f"\nNew execution. P-value: {numPVal}. Date: {now}.\n", file=fdLog)
 
-ALGORITHMS = [ "CSBS", "PRCDSF", "SCDFSF", "CSSU", "FCIFS"]
-
-GRAPHICAL_SCORE_TYPES = ["e", "a", "c", "t"]
-
 INITIAL_P = 0.1
-
-NUM_VARS = 100
-
+NUM_VARS = 50
 NEIGHBORHOOD_SIZE = 3
-
-INITIAL_COLUMNS = ["random_seed"]
-
-METRICS_NT = ["numCI", "execTime", "avgSepSize", "HD", "SHDe", "SHD"]
-
-METRICS_T = ["TP", "FP", "TN", "FN", "PREC", "RECALL", "F1"]
-
-METRICS_SC = ["SCHD", "SCHDn", "SCSHDe", "SCSHDen", "SCSHD", "SCSHDn"]
+MAX_ITER = 1e3
+CI_TEST = fisherz
 
 
-NUM_INSTANCES = 500
 
-
+NUM_INSTANCES = 50
 NUM_RANDOM_DAGS = 1
-
 NUM_ORDERS = 1
-
-NUM_PERCENTAGE = 5
-
+NUM_PERCENTAGE = 1
 PERCENT_STEP = 0.20
-
 percentList = [round((k+1)*PERCENT_STEP, 2) for k in range(NUM_PERCENTAGE) ]
-
 
 p = INITIAL_P/(2**numPVal)
 
@@ -78,123 +63,91 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
     #Write a header row
     
     column_names = []
-    
-    for initial_column in INITIAL_COLUMNS:
-        column_names.append(initial_column)
-    
-    for alg_name in ALGORITHMS:
+
+    for alg_name in g_m.ALGORITHMS:
         for percentage in percentList:
             suffix = "_" + alg_name + "_" + str(int(percentage*100))
             
-            for metric_nt in METRICS_NT:
+            for metric_nt in g_m.METRICS_NT:
                 column_name = metric_nt + suffix
                 column_names.append(column_name)
                 
-            for metric_type in GRAPHICAL_SCORE_TYPES:
+            for metric_type in g_m.GRAPHICAL_SCORE_TYPES:
                 suffix2 = suffix + "_" + metric_type
                 
-                for metric_t in METRICS_T:
+                for metric_t in g_m.METRICS_T:
                     column_name = metric_t + suffix2
                     column_names.append(column_name)
                     
         suffix = "_" + alg_name 
-        for metric_sc in METRICS_SC:
+        for metric_sc in g_m.METRICS_SC:
             column_name = metric_sc + suffix
             column_names.append(column_name)
             
-            
-                    
-        
-                    
-                    
-                    
-                    
-                
-                
-            
-    
-    
     writer.writerow(column_names)
     for j in range(0, NUM_RANDOM_DAGS):
         
-        row = []
-            
-        n_states = np.random.randint(low=3, high=6, size=NUM_VARS)
-        #Generate random DAG
-        model = BayesianNetwork.get_random(n_nodes=NUM_VARS, edge_prob=NEIGHBORHOOD_SIZE/(NUM_VARS-1), n_states = n_states)
-            
-            
-         # Simulate data
-
-        data = model.simulate(n_samples=NUM_INSTANCES)
-        variables = list(data.columns)
-            
+        gen = AcyclicGraphGenerator('linear', npoints=NUM_INSTANCES, nodes=NUM_VARS, dag_type='erdos', expected_degree= NEIGHBORHOOD_SIZE)
+        df, ground_truth = gen.generate()   # X: DataFrame, G: networkx.DiGraph
         
-
-      
-            
-        PDAG_stable, nCITestStable =  estFS.estimate(variant = "MPC-stable", ci_test='chi_square', max_cond_vars=3,  significance_level= p, new_vars = variables)
-            
-        
-            
-        totalTimeStable = timeStable1 - timeStable0
-            
-        stable_metrics = PDAG_stable.getGraphicalMetrics(PDAG_base)
-            
-        stable_metrics =  stable_metrics + [nCITestStable, totalTimeStable ]
-            
-            
         
         for i in range(0, NUM_ORDERS):
 
-                data = random_var_order(data) 
+                random_permutation = np.random.permutation(NUM_VARS)
+                df_permuted = df.iloc[:, random_permutation]
+                df_permuted.to_csv("../experiments_data/Data-DAG{j}-Order{i}.csv", index=False, float_format="%.15g")
                 
-                estFS = PCFS(data) #PC-FS
-                variables = list(data.columns)
+                data   = df.values                   # numpy array, n×p
+                names = df.columns
                 
-                timeOrig0 = time.time()
+                output_csbs = (GeneralGraph([]), 0, 0, 0)
+                output_prcdsf = (GeneralGraph([]), 0, 0, 0)
+                output_scdfsf = (GeneralGraph([]), 0, 0, 0)
+                output_fci_fs = (GeneralGraph([]), 0, 0, 0, [], {})
+                output_fci_stable = (GeneralGraph([]), 0, 0, 0, [], {})
                 
-                PDAG_orig, numCIOrig =  estFS.estimate(variant = "orig", ci_test='chi_square', max_cond_vars=3,  significance_level= p, new_vars = variables)
-                
-                timeOrig1 = time.time()
-                
-                totalTimeOrig = timeOrig1 - timeOrig0
-                
-                
-                orig_metrics = PDAG_orig.getGraphicalMetrics(PDAG_base)
-                
-                orig_metrics = orig_metrics + [numCIOrig, totalTimeOrig]
-                
-                fs_metrics = []
+                csbs_info = []
+                prcdsf_info = []
+                scdfsf_info = []
+                fci_fs_info = []
+                fci_stable_info = []
                 
                 for percentage in percentList :
+                    
+                    start_pos =int((percentage - PERCENT_STEP)*NUM_VARS)
+                    end_pos = int(percentage*NUM_VARS)
+                    data_marginal = data[:, 0:end_pos]
+                    new_names = names[ start_pos:end_pos]
+                    
+                    output_csbs = csbs_fs(data_marginal, independence_test_method=CI_TEST,  initial_graph= output_csbs[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER) 
+                    output_prcdsf = prcdsf_fs(data_marginal, independence_test_method=CI_TEST,  initial_graph= output_prcdsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)
+                    output_scdfsf = s_cdfsf_fs(data_marginal, independence_test_method=CI_TEST,  initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
+                    output_fci_fs = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = output_fci_fs[5], initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
+                    output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = {}, initial_graph = GeneralGraph([]), new_nodes_names = names[0: end_pos], verbose = False)
+                    
+                    print("Graphs learned")
+                    
+                    #Metrics of the marginal models
+                    csbs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_csbs[0], output_csbs))
+                    prcdsf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_prcdsf[0], output_prcdsf))
+                    scdfsf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_scdfsf[0], output_scdfsf))
+                    fci_fs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_fs[0], output_fci_fs))
+                    fci_stable_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_stable[0], output_fci_stable))
+                    
+                    print("Scores 1 done")
+                    
+                csbs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, csbs_info))
+                prcdsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, prcdsf_info))
+                scdfsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, scdfsf_info))
+                fci_fs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_fs_info))
+                fci_stable_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_stable_info))
                 
-                    newVars, initialVars = extract_random(data, percentage = percentage)
-                    
-                    timeMarginal0 = time.time()
-                    
-                    PDAG_marginal, numCIMarginal = estFS.estimate(variant = "MPC-stable", ci_test='chi_square', max_cond_vars=3,  significance_level=p, new_vars = initialVars)
-                   
-                    timeMarginal1 = time.time()
-                   
-                    totalTimeMarginal = timeMarginal1 - timeMarginal0
-                    
-                    timeFS0 = time.time()
-                    
-                    PDAG_FS, numCIFS = estFS.estimate(variant = "MPC-stable", ci_test='chi_square', max_cond_vars=3, pdag = PDAG_marginal,   significance_level=p, new_vars = newVars)
-                    
-                    timeFS1 = time.time()
-                    
-                    totalTimeFS = timeFS1 - timeFS0
-                    
-                    
-                    
-                    fs_metrics = fs_metrics + PDAG_FS.getGraphicalMetrics(PDAG_base) + [numCIMarginal, totalTimeMarginal, numCIFS, totalTimeFS]
+                print("Scores 2 done")
                 
+                new_row = csbs_info + prcdsf_info + scdfsf_info + fci_fs_info
+                writer.writerow(new_row)
                 
-                newRow = orig_metrics + stable_metrics + fs_metrics
-                print(f"\nSIMULATE DATA: {numPVal} - {j+1}:{NUM_RANDOM_DAGS} - {i+1}:{NUM_ORDERS}.\n", file=fdLog)
+                print(f"DAG {j} of  {NUM_RANDOM_DAGS}. ORDER {i} of {NUM_ORDERS}.")
                 
-                writer.writerow(newRow)
 
-print(f"Finished. P-value. {numPVal}", file=fdLog)
+print(f"Finished. P-value: {numPVal}.", file=fdLog)

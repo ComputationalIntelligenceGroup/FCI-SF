@@ -28,11 +28,13 @@ from cdt.data import AcyclicGraphGenerator
 from CSBS_FS import csbs_fs
 from PRCDSF_FS import prcdsf_fs
 from S_CDFSF_FS import s_cdfsf_fs
+from CSSU_FS import cssu_fs
 from FCI_FS import fci_fs
 import graphical_metrics as g_m
 
 
 import auxiliary as aux
+from to_PAG import to_PAG
 
 numPVal =  1
 filePath = f"../log{numPVal}.txt"
@@ -48,7 +50,7 @@ MAX_ITER = 1e3
 CI_TEST = fisherz
 
 
-
+NUM_DATASET_SIZES = 1
 NUM_INSTANCES = 50
 NUM_RANDOM_DAGS = 1
 NUM_ORDERS = 1
@@ -56,7 +58,7 @@ NUM_PERCENTAGE = 1
 PERCENT_STEP = 0.20
 percentList = [round((k+1)*PERCENT_STEP, 2) for k in range(NUM_PERCENTAGE) ]
 
-p = INITIAL_P/(2**numPVal)
+ALPHA = INITIAL_P/(2**numPVal)
 
 with open(f"output{numPVal}.csv", mode='w', newline='') as file:
     writer = csv.writer(file)
@@ -87,67 +89,82 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
     writer.writerow(column_names)
     for j in range(0, NUM_RANDOM_DAGS):
         
-        gen = AcyclicGraphGenerator('linear', npoints=NUM_INSTANCES, nodes=NUM_VARS, dag_type='erdos', expected_degree= NEIGHBORHOOD_SIZE)
-        df, ground_truth = gen.generate()   # X: DataFrame, G: networkx.DiGraph
+        for tam_mult in range(0, NUM_DATASET_SIZES):
+            dataset_size = NUM_INSTANCES*(2**tam_mult)
         
-        
-        for i in range(0, NUM_ORDERS):
-
-                random_permutation = np.random.permutation(NUM_VARS)
-                df_permuted = df.iloc[:, random_permutation]
-                df_permuted.to_csv("../experiments_data/Data-DAG{j}-Order{i}.csv", index=False, float_format="%.15g")
-                
-                data   = df.values                   # numpy array, n×p
-                names = df.columns
-                
-                output_csbs = (GeneralGraph([]), 0, 0, 0)
-                output_prcdsf = (GeneralGraph([]), 0, 0, 0)
-                output_scdfsf = (GeneralGraph([]), 0, 0, 0)
-                output_fci_fs = (GeneralGraph([]), 0, 0, 0, [], {})
-                output_fci_stable = (GeneralGraph([]), 0, 0, 0, [], {})
-                
-                csbs_info = []
-                prcdsf_info = []
-                scdfsf_info = []
-                fci_fs_info = []
-                fci_stable_info = []
-                
-                for percentage in percentList :
+            gen = AcyclicGraphGenerator('linear', npoints=NUM_INSTANCES, nodes=NUM_VARS, dag_type='erdos', expected_degree= NEIGHBORHOOD_SIZE)
+            df, digraph = gen.generate()   # X: DataFrame, G: networkx.DiGraph
+                        
+            names = df.columns
+            
+            full_ground_truth = to_PAG(digraph, names)
+            
+            for i in range(0, NUM_ORDERS):
+    
+                    random_permutation = np.random.permutation(NUM_VARS)
+                    df_permuted = df.iloc[:, random_permutation]
+                    df_permuted.to_csv("../experiments_data/Data-DAG{j}-Size{dataset_size}-Order{i}.csv", index=False, float_format="%.15g")
                     
-                    start_pos =int((percentage - PERCENT_STEP)*NUM_VARS)
-                    end_pos = int(percentage*NUM_VARS)
-                    data_marginal = data[:, 0:end_pos]
-                    new_names = names[ start_pos:end_pos]
+                    permuted_names = df_permuted.columns
+                    data = df_permuted.values
                     
-                    output_csbs = csbs_fs(data_marginal, independence_test_method=CI_TEST,  initial_graph= output_csbs[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER) 
-                    output_prcdsf = prcdsf_fs(data_marginal, independence_test_method=CI_TEST,  initial_graph= output_prcdsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)
-                    output_scdfsf = s_cdfsf_fs(data_marginal, independence_test_method=CI_TEST,  initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
-                    output_fci_fs = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = output_fci_fs[5], initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
-                    output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = {}, initial_graph = GeneralGraph([]), new_nodes_names = names[0: end_pos], verbose = False)
+                    output_csbs = (GeneralGraph([]), 0, 0, 0)
+                    output_prcdsf = (GeneralGraph([]), 0, 0, 0)
+                    output_scdfsf = (GeneralGraph([]), 0, 0, 0)
+                    output_cssu = (GeneralGraph([]), 0, 0, 0)
+                    output_fci_fs = (GeneralGraph([]), 0, 0, 0, [], {})
+                    output_fci_stable = (GeneralGraph([]), 0, 0, 0, [], {})
                     
-                    print("Graphs learned")
+                    csbs_info = []
+                    prcdsf_info = []
+                    scdfsf_info = []
+                    cssu_info = []
+                    fci_fs_info = []
+                    fci_stable_info = []
                     
-                    #Metrics of the marginal models
-                    csbs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_csbs[0], output_csbs))
-                    prcdsf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_prcdsf[0], output_prcdsf))
-                    scdfsf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_scdfsf[0], output_scdfsf))
-                    fci_fs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_fs[0], output_fci_fs))
-                    fci_stable_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_stable[0], output_fci_stable))
+                    for percentage in percentList :
+                        
+                        start_pos =int((percentage - PERCENT_STEP)*NUM_VARS)
+                        end_pos = int(percentage*NUM_VARS)
+                        data_marginal = data[:, 0:end_pos]
+                        new_names = permuted_names[ start_pos:end_pos]
+                        
+                        ground_truth = full_ground_truth.marginalize(new_names)
+                        
+                        
+                        
+                        output_csbs = csbs_fs(data_marginal, independence_test_method=CI_TEST, alpha= ALPHA, initial_graph= output_csbs[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER) 
+                        output_prcdsf = prcdsf_fs(data_marginal, independence_test_method=CI_TEST, alpha= ALPHA,   initial_graph= output_prcdsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)
+                        output_scdfsf = s_cdfsf_fs(data_marginal, independence_test_method=CI_TEST, alpha= ALPHA,   initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
+                        output_cssu = cssu_fs(data_marginal, alpha= ALPHA,  initial_graph= output_cssu[0], new_node_names= new_names, verbose=False, max_iter= MAX_ITER)
+                        output_fci_fs = fci_fs(data_marginal, independence_test_method=CI_TEST,  initial_sep_sets = output_fci_fs[5], alpha= ALPHA,  initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
+                        output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_nodes_names = permuted_names[0: end_pos], verbose = False)
+                        
+                        print("Graphs learned")
+                        
+                        #Metrics of the marginal models
+                        csbs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_csbs[0], output_csbs))
+                        prcdsf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_prcdsf[0], output_prcdsf))
+                        scdfsf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_scdfsf[0], output_scdfsf))
+                        cssu_info.extend(g_m.get_alg_marginal_info(ground_truth, output_cssu[0], output_cssu))
+                        fci_fs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_fs[0], output_fci_fs))
+                        fci_stable_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_stable[0], output_fci_stable))
+                        
+                        print("Scores 1 done")
+                        
+                    csbs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, csbs_info))
+                    prcdsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, prcdsf_info))
+                    scdfsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, scdfsf_info))
+                    cssu_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, cssu_info))
+                    fci_fs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_fs_info))
+                    fci_stable_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_stable_info))
                     
-                    print("Scores 1 done")
+                    print("Scores 2 done")
                     
-                csbs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, csbs_info))
-                prcdsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, prcdsf_info))
-                scdfsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, scdfsf_info))
-                fci_fs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_fs_info))
-                fci_stable_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_stable_info))
-                
-                print("Scores 2 done")
-                
-                new_row = csbs_info + prcdsf_info + scdfsf_info + fci_fs_info
-                writer.writerow(new_row)
-                
-                print(f"DAG {j} of  {NUM_RANDOM_DAGS}. ORDER {i} of {NUM_ORDERS}.")
+                    new_row = csbs_info + prcdsf_info + scdfsf_info + fci_fs_info
+                    writer.writerow(new_row)
+                    
+            print(f"DAG {j} of  {NUM_RANDOM_DAGS}. ORDER {i} of {NUM_ORDERS}.")
                 
 
 print(f"Finished. P-value: {numPVal}.", file=fdLog)

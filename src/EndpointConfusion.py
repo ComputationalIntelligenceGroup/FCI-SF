@@ -54,10 +54,6 @@ class EndpointConfusion:
         ones = np.ones((len(nodes), len(nodes)))
         zeros = np.zeros((len(nodes), len(nodes)))
         
-        print(estPositives)
-        print(truePositives)
-        
-        print(truePositives == estPositives)
 
         self.__Fp = (np.maximum(estPositives - truePositives, zeros)).sum()
         self.__Fn = (np.maximum(truePositives - estPositives, zeros)).sum()

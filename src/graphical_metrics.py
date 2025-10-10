@@ -44,7 +44,7 @@ def shd_separed(ground_truth: Union[nx.DiGraph, SCCausalGraph], estim_pag: PAG) 
     for x, y in [(x.get_name(), y.get_name()) for i, x in enumerate(ground_truth.get_nodes()) for j, y in
                  enumerate(ground_truth.get_nodes()) if i < j]:
         
-        
+       
         if ground_truth.is_adjacent_to(ground_truth.get_node(x), ground_truth.get_node(y)):
             gt_edge = ground_truth.get_edge(ground_truth.get_node(x), ground_truth.get_node(y))
             if not estim_pag.graph.is_adjacent_to(estim_pag.graph.get_node(x), estim_pag.graph.get_node(y)):
@@ -58,6 +58,7 @@ def shd_separed(ground_truth: Union[nx.DiGraph, SCCausalGraph], estim_pag: PAG) 
                 if gt_edge.get_endpoint2() != hat_edge.get_endpoint2():
                     endpoint_errors += 1
         else:
+            
             if estim_pag.graph.is_adjacent_to(estim_pag.graph.get_node(x), estim_pag.graph.get_node(y)):
                 hat_edge = estim_pag.graph.get_edge(estim_pag.graph.get_node(x), estim_pag.graph.get_node(y))
                 adj_errors += 1
@@ -65,8 +66,7 @@ def shd_separed(ground_truth: Union[nx.DiGraph, SCCausalGraph], estim_pag: PAG) 
                 endpoint_errors += 1 if hat_edge.get_endpoint2() != Endpoint.CIRCLE else 0
     return adj_errors, endpoint_errors
 
-def shd_marginal(joint_graph: SCCausalGraph, marginal_graph: SCCausalGraph) -> Tuple[int, int]:
-    marginalised_joint_graph = joint_graph.marginalize(marginal_graph.variables())
+def shd_marginal(marginalised_joint_graph: SCCausalGraph, marginal_graph: SCCausalGraph) -> Tuple[int, int]:
     
     return shd_separed(marginalised_joint_graph, marginal_graph)
 
@@ -84,19 +84,14 @@ METRICS_SC = ["SCHD", "SCHDn", "SCED", "SCEDn", "SCSHD", "SCSHDn, SCF1, SCP, SCR
 
 def get_metrics_nt(ground_truth: Union[nx.DiGraph, SCCausalGraph, GeneralGraph], est_pag: PAG, alg_output: Tuple[Any]) :
     
-    if type(ground_truth) == nx.DiGraph:
-        ground_truth = est_pag._dag_to_pag(ground_truth)
-    elif type(ground_truth) == PAG:
-        ground_truth = ground_truth.graph
-    elif type(ground_truth) != GeneralGraph:
-        raise NotImplementedError()
+   
     
     res = []
     
     print("Starts ok")
     
     res.append(alg_output[1]) #numCI
-    res.append(len(est_pag.get_graph_edges())) # numEdges
+    res.append(len(est_pag.graph.get_graph_edges())) # numEdges
     res.append(alg_output[2]) # avgSepSize
     res.append(alg_output[3]) # execTime
     
@@ -115,12 +110,7 @@ def get_metrics_nt(ground_truth: Union[nx.DiGraph, SCCausalGraph, GeneralGraph],
 def get_metrics_t(ground_truth: Union[nx.DiGraph, SCCausalGraph], est_graph: PAG) :
     
     
-    if type(ground_truth) == nx.DiGraph:
-        ground_truth = est_graph._dag_to_pag(ground_truth)
-    elif type(ground_truth) == PAG:
-        ground_truth = ground_truth.graph
-    elif type(ground_truth) != GeneralGraph:
-        raise NotImplementedError()
+    
     
     endpoint_types = [Endpoint.ARROW, Endpoint.CIRCLE, Endpoint.TAIL]
     
@@ -166,7 +156,7 @@ def get_alg_marginal_info(ground_truth: Union[nx.DiGraph, SCCausalGraph], est_gr
         ground_truth = est_pag._dag_to_pag(ground_truth)
         print("Let's see")
     elif type(ground_truth) == PAG:
-        ground_truth = ground_truth.graph
+        ground_truth = ground_truth
     elif type(ground_truth) != GeneralGraph:
         raise NotImplementedError()
         

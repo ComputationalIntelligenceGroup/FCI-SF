@@ -51,7 +51,7 @@ def draw_digraph(G, filename=None):
     plt.show()
 
 
-gen = AcyclicGraphGenerator('linear', npoints=50, nodes=100, dag_type='erdos', expected_degree= 2)
+gen = AcyclicGraphGenerator('linear', npoints=100, nodes=50, dag_type='erdos', expected_degree= 2)
 df, G = gen.generate()   # X: DataFrame, G: networkx.DiGraph
 
 draw_digraph(G, "Ground-Truth DAG")
@@ -60,9 +60,9 @@ data   = df.values                   # numpy array, n×p
 names = df.columns
 
 
-data1 = data[:, 0:50]
-names1 = names[ 0:50]
-names2 = names[ 50: ]
+data1 = data[:, 0:25]
+names1 = names[ 0:25]
+names2 = names[ 25: ]
 
 """
 from pgmpy.utils import get_example_model
@@ -84,41 +84,43 @@ names1 = names[0:4]
 names2 = names[4:6]
 """
 
-k = 4
+k = 5
 
-g0, nCI0, avg_ss0, exec_t0 = csbs_fs(data1,independence_test_method=fisherz, new_node_names= names1 ,verbose = True,  
+g0, nCI0, avg_ss0, exec_t0 = csbs_fs(data1,independence_test_method=fisherz, new_node_names= names1 ,verbose = False,  
             max_iter = 1e3) 
 print("g0, OK!")
-g1, _, _, exec_t1 = prcdsf_fs(data1,independence_test_method= fisherz,  new_node_names= names1 ,verbose = True,  
+g1, _, _, exec_t1 = prcdsf_fs(data1,independence_test_method= fisherz,  new_node_names= names1 ,verbose = False,  
             max_iter = 1e3)
 print("g1, OK!")
-g2, _, _, exec_t2 = s_cdfsf_fs(data1,independence_test_method=fisherz , new_node_names= names1 ,verbose = True,  
+g2, _, _, exec_t2 = s_cdfsf_fs(data1,independence_test_method=fisherz , new_node_names= names1 ,verbose = False,  
             max_iter = 1e3)
 print("g2, OK!")
-#g3, _, _, exec_t3 = cssu_fs(data1, alpha= 5e-2,  new_node_names= names1 ,verbose = False,  max_iter = 1e3)
+
+
+g3, _, _, exec_t3 = cssu_fs(data1, alpha= 5e-2,  new_node_names= names1 ,verbose = True,  max_iter = 1e3)
 #print("g3, OK!")
-g4, _, _, _, _, exec_t4 = fci_fs(data1, independence_test_method=fisherz ,  new_node_names= names1 ,verbose = False)
+g4, _, _, exec_t4, _, _ = fci_fs(data1, independence_test_method=fisherz ,  new_node_names= names1 ,verbose = False)
 print("g4, OK!")
 
-graphs = [g0, g1, g2, g4]
+graphs = [g0, g1, g2, g3, g4]
 
 
 for i in range(k):
     GraphUtils.to_pydot(graphs[i]).write_png(f"testing_marginal_OAlg-1-{i}.png")
     
     
-g0, _, _, exec_t02 = csbs_fs(data,independence_test_method=fisherz, initial_graph= g0, new_node_names= names2 ,verbose = True,  
+g0, _, _, exec_t02 = csbs_fs(data,independence_test_method=fisherz, initial_graph= g0, new_node_names= names2 ,verbose = False,  
             max_iter = 1e3) 
 print("g0, OK!")
-g1, _, _, exec_t12 = prcdsf_fs(data,independence_test_method=fisherz, initial_graph= g1 ,  new_node_names= names2 ,verbose = True,  
+g1, _, _, exec_t12 = prcdsf_fs(data,independence_test_method=fisherz, initial_graph= g1 ,  new_node_names= names2 ,verbose = False,  
             max_iter = 1e3)
 print("g1, OK!")
-g2, _, _, exec_t22 = s_cdfsf_fs(data,independence_test_method=fisherz, initial_graph= g2 ,  new_node_names= names2 ,verbose = True,  
+g2, _, _, exec_t22 = s_cdfsf_fs(data,independence_test_method=fisherz, initial_graph= g2 ,  new_node_names= names2 ,verbose = False,  
             max_iter = 1e3)
 print("g2, OK!")
-#g3, _, _, exec_t32 = cssu_fs(data, alpha=  1e-4,  new_node_names= names2, initial_graph= g3 ,verbose = False,  max_iter = 1e3)
+g3, _, _, exec_t32 = cssu_fs(data, alpha= 5e-2,  new_node_names= names2, initial_graph= g3 ,verbose = False,  max_iter = 1e3)
 #print("g3, OK!")
-g4, _, _, _, _, exec_t42 = fci_fs(data, independence_test_method=fisherz, initial_graph= g4 ,  new_node_names= names2 ,verbose = False)
+g4, _, _, exec_t42, _, _ = fci_fs(data, independence_test_method=fisherz, initial_graph= g4 ,  new_node_names= names2 ,verbose = False)
 print("g4, OK!")
 
 

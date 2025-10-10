@@ -16,7 +16,7 @@ from causallearn.utils.cit import *
 from IncrementalGraph import IncrementalGraph
 import hill_climbing as hc
 
-from skfeature.utility.mutual_information import su_calculation
+from SU import gaussian_su_from_samples
 import time
 
 
@@ -62,7 +62,7 @@ def cssu_fs(data: ndarray, alpha: float = 0.1,
             
             num_CI_tests += 1
             
-            su = su_calculation(data[:,i], data[:,j])
+            su = gaussian_su_from_samples(data[:,i], data[:,j])
             if su > alpha:
                 
                 tempSort[i] = su
@@ -75,7 +75,7 @@ def cssu_fs(data: ndarray, alpha: float = 0.1,
 
             for  k, v in list(tempSort.items()): 
                 num_CI_tests+= 1
-                if su_calculation(data[:,k], data[:,m]) > v:
+                if gaussian_su_from_samples(data[:,k], data[:,m]) > v:
                     if verbose:
                         print("Step 1: Reduce tempSort")
                     tempSort.pop(k)
@@ -90,9 +90,9 @@ def cssu_fs(data: ndarray, alpha: float = 0.1,
             for s in [x for x in cn.neighbors(m) if x != j]:
                 
                 num_CI_tests += 2
-                if (su_calculation(data[:, j], data[:, m]) > su_calculation(data[:, s], data[:, m])) :
+                if (gaussian_su_from_samples(data[:, j], data[:, m]) > gaussian_su_from_samples(data[:, s], data[:, m])) :
                     num_CI_tests += 2
-                    if (su_calculation(data[:, j], data[:, s]) > su_calculation(data[:, s], data[:, m])): # this could be improved by storing the value of the SU of each edge in the graph
+                    if (gaussian_su_from_samples(data[:, j], data[:, s]) > gaussian_su_from_samples(data[:, s], data[:, m])): # this could be improved by storing the value of the SU of each edge in the graph
                         to_remove.append((m,s))
         
         for m, s in to_remove:

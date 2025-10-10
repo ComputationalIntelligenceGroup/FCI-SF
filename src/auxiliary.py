@@ -7,6 +7,8 @@ import random
 
 
 
+
+
 def get_numerical_edges(G: GeneralGraph) -> List[Tuple[int, int]]:
     """Returns all the edges from the general graph"""
     res: List[Tuple[int, int]] = []
@@ -55,7 +57,6 @@ def random_permutation(size: int) -> List[int]:
 
 
 
-    
     
     
     

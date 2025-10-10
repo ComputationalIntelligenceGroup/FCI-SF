@@ -40,7 +40,10 @@ class IncrementalGraph:
         new_nodes: List[Node] = []
 
         
-        for i in range(no_of_var):         
+        for i in range(no_of_var):     
+            
+           
+            
             node = GraphNode(new_node_names[i])
             id: int = i + initial_graph.get_num_nodes()
             node.add_attribute("id", id )

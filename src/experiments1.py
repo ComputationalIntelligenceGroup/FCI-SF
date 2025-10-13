@@ -51,7 +51,7 @@ CI_TEST = fisherz
 
 
 NUM_DATASET_SIZES = 1
-NUM_INSTANCES = 50
+NUM_INSTANCES = 500
 NUM_RANDOM_DAGS = 1
 NUM_ORDERS = 1
 NUM_PERCENTAGE = 1
@@ -85,7 +85,7 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
         for metric_sc in g_m.METRICS_SC:
             column_name = metric_sc + suffix
             column_names.append(column_name)
-            
+    sumar = 0
     writer.writerow(column_names)
     for j in range(0, NUM_RANDOM_DAGS):
         
@@ -99,11 +99,14 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
             
             full_ground_truth = to_PAG(digraph, names)
             
+            
+        
+            
             for i in range(0, NUM_ORDERS):
     
                     random_permutation = np.random.permutation(NUM_VARS)
                     df_permuted = df.iloc[:, random_permutation]
-                    df_permuted.to_csv("../experiments_data/Data-DAG{j}-Size{dataset_size}-Order{i}.csv", index=False, float_format="%.15g")
+                    df_permuted.to_csv(f"../experiments_data/Data-DAG{j}-Size{dataset_size}-Order{i}.csv", index=False, float_format="%.15g")
                     
                     permuted_names = df_permuted.columns
                     data = df_permuted.values
@@ -138,9 +141,9 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
                         output_scdfsf = s_cdfsf_fs(data_marginal, independence_test_method=CI_TEST, alpha= ALPHA,   initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
                         output_cssu = cssu_fs(data_marginal, alpha= ALPHA,  initial_graph= output_cssu[0], new_node_names= new_names, verbose=False, max_iter= MAX_ITER)
                         output_fci_fs = fci_fs(data_marginal, independence_test_method=CI_TEST,  initial_sep_sets = output_fci_fs[5], alpha= ALPHA,  initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
-                        output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_nodes_names = permuted_names[0: end_pos], verbose = False)
+                        output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_node_names = permuted_names[0: end_pos], verbose = False)
                         
-                        print("Graphs learned")
+                        
                         
                         #Metrics of the marginal models
                         csbs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_csbs[0], output_csbs))
@@ -150,7 +153,7 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
                         fci_fs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_fs[0], output_fci_fs))
                         fci_stable_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_stable[0], output_fci_stable))
                         
-                        print("Scores 1 done")
+                      
                         
                     csbs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, csbs_info))
                     prcdsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, prcdsf_info))
@@ -159,9 +162,8 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
                     fci_fs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_fs_info))
                     fci_stable_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_stable_info))
                     
-                    print("Scores 2 done")
-                    
-                    new_row = csbs_info + prcdsf_info + scdfsf_info + fci_fs_info
+                   
+                    new_row = csbs_info + prcdsf_info + scdfsf_info + fci_fs_info + fci_stable_info
                     writer.writerow(new_row)
                     
             print(f"DAG {j} of  {NUM_RANDOM_DAGS}. ORDER {i} of {NUM_ORDERS}.")

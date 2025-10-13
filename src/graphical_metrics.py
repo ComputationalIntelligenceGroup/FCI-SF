@@ -44,7 +44,7 @@ def shd_separed(ground_truth: Union[nx.DiGraph, SCCausalGraph], estim_pag: PAG) 
     for x, y in [(x.get_name(), y.get_name()) for i, x in enumerate(ground_truth.get_nodes()) for j, y in
                  enumerate(ground_truth.get_nodes()) if i < j]:
         
-       
+        
         if ground_truth.is_adjacent_to(ground_truth.get_node(x), ground_truth.get_node(y)):
             gt_edge = ground_truth.get_edge(ground_truth.get_node(x), ground_truth.get_node(y))
             if not estim_pag.graph.is_adjacent_to(estim_pag.graph.get_node(x), estim_pag.graph.get_node(y)):
@@ -88,14 +88,12 @@ def get_metrics_nt(ground_truth: Union[nx.DiGraph, SCCausalGraph, GeneralGraph],
     
     res = []
     
-    print("Starts ok")
-    
     res.append(alg_output[1]) #numCI
     res.append(len(est_pag.graph.get_graph_edges())) # numEdges
     res.append(alg_output[2]) # avgSepSize
     res.append(alg_output[3]) # execTime
     
-    print(f"Appends ez!!: type ground truth is {type(ground_truth)}, est_pag type is {type(est_pag)}.")
+    
     
     
     adj_errors, endpoint_errors = shd_marginal(ground_truth, est_pag)
@@ -144,7 +142,6 @@ def get_metrics_t(ground_truth: Union[nx.DiGraph, SCCausalGraph], est_graph: PAG
 def get_alg_marginal_info(ground_truth: Union[nx.DiGraph, SCCausalGraph], est_graph: Union[SCCausalGraph, GeneralGraph], 
                           alg_output: Tuple[Any]):
     
-    print("Cheking...")
     
     if type(est_graph) == GeneralGraph:
         est_pag = PAG(est_graph)
@@ -152,23 +149,17 @@ def get_alg_marginal_info(ground_truth: Union[nx.DiGraph, SCCausalGraph], est_gr
         raise NotImplementedError()
     
     if type(ground_truth) == nx.DiGraph:
-        print("Could it be this?")
         ground_truth = est_pag._dag_to_pag(ground_truth)
-        print("Let's see")
+       
     elif type(ground_truth) == PAG:
         ground_truth = ground_truth
     elif type(ground_truth) != GeneralGraph:
         raise NotImplementedError()
-        
-    print("Type check ok")
+
         
     res = get_metrics_nt(ground_truth, est_pag, alg_output)
     
-    print("Metrics nt ok")
-    
     res.extend(get_metrics_t(ground_truth, est_pag))
-    
-    print("Metrics t ok")
     
     return res
     
@@ -178,7 +169,6 @@ def get_self_comp_info(num_iter: int, num_var: int, info: List[Any]):
     
     
     num_st = len(GRAPHICAL_SCORE_TYPES)
-    num_mnt = len(METRICS_NT)
     num_mt = len(METRICS_T)
     
     

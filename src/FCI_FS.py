@@ -170,13 +170,16 @@ def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float
     old_nodes = initial_graph.get_nodes()
     nodes = []
     
-    
+    print(f"New node names before FAC: {new_node_names}")
    
 
     # FAS (“Fast Adjacency Search”) is the adjacency search of the PC algorithm, used as a first step for the FCI algorithm.
     graph, sep_sets, num_CI, sep_size = fas_fs(dataset, independence_test_method=independence_test_method, alpha=alpha, 
                                            initial_graph= initial_graph, initial_sep_sets = initial_sep_sets,
                                          depth=depth, verbose=verbose, new_node_names = new_node_names)
+    
+    print(f"New node names after FAC: {graph.get_node_names()}")
+    
     num_CI_tests += num_CI
     sepset_size += sep_size
     

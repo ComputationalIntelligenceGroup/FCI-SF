@@ -36,6 +36,13 @@ class EndpointConfusion:
         estPositives = np.zeros((len(nodes), len(nodes)))
         truePositivesCE = np.zeros((len(nodes), len(nodes)))
         estPositivesCE = np.zeros((len(nodes), len(nodes)))
+        
+        trueAdj = (truth.graph != 0).astype(int)
+        estAdj  = (est.graph  != 0).astype(int)
+
+        mask = np.maximum(trueAdj, estAdj)
+        
+        print(mask.sum())
 
         # Assumes the list of nodes for the two graphs are the same.
         for i in list(range(0, len(nodes))):
@@ -51,14 +58,14 @@ class EndpointConfusion:
                         and truth.is_adjacent_to(truth.get_node(nodes_name[i]), truth.get_node(nodes_name[j])):
                     estPositivesCE[j][i] = 1
 
-        ones = np.ones((len(nodes), len(nodes)))
+        
         zeros = np.zeros((len(nodes), len(nodes)))
         
 
         self.__Fp = (np.maximum(estPositives - truePositives, zeros)).sum()
         self.__Fn = (np.maximum(truePositives - estPositives, zeros)).sum()
         self.__Tp = (np.minimum(truePositives == estPositives, truePositives)).sum()
-        self.__Tn = (truePositives == estPositives).sum() - self.__Tp
+        self.__Tn = (np.minimum(truePositives == estPositives, mask)).sum() - self.__Tp
 
         self.__FpCE = (np.maximum(estPositivesCE - truePositivesCE, zeros)).sum()
         self.__FnCE = (np.maximum(truePositivesCE - estPositivesCE, zeros)).sum()

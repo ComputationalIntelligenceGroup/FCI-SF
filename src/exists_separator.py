@@ -23,6 +23,7 @@ def _exists_separator(graph: IncrementalGraph, x:int, y:int,  mb_x: List[int], i
     choice = gen.next()
     exists_separator = False
     
+    last_len = 0
     
     while choice is not None and not exists_separator:
         
@@ -37,6 +38,9 @@ def _exists_separator(graph: IncrementalGraph, x:int, y:int,  mb_x: List[int], i
         p_value = independence_test_method(x, y, S)
         exists_separator = p_value > alpha
         
+        if verbose and last_len < len(S):
+            last_len = len(S)
+            print(f"Sepset len: {last_len}")
         if exists_separator and verbose:
             print("%s ind %s given %s with p-val %s" % (x, y, S, p_value))
         choice = gen.next()

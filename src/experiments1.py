@@ -19,11 +19,13 @@ import csv
 import numpy as np
 import time
 from datetime import datetime
+import networkx as nx
 
 from causallearn.utils.cit           import fisherz      # ∼O(n³) linear-Gaussian CI test
 from causallearn.utils.GraphUtils    import GraphUtils
 from causallearn.graph.GeneralGraph import GeneralGraph 
 from cdt.data import AcyclicGraphGenerator
+from causallearn.utils.cit import CIT, d_separation
 
 from CSBS_FS import csbs_fs
 from PRCDSF_FS import prcdsf_fs
@@ -31,10 +33,11 @@ from S_CDFSF_FS import s_cdfsf_fs
 from CSSU_FS import cssu_fs
 from FCI_FS import fci_fs
 import graphical_metrics as g_m
-
-
 import auxiliary as aux
 from to_PAG import to_PAG
+from dag2pag import dag2pag
+
+import time 
 
 numPVal =  1
 filePath = f"../log{numPVal}.txt"
@@ -45,20 +48,22 @@ print(f"\nNew execution. P-value: {numPVal}. Date: {now}.\n", file=fdLog)
 
 INITIAL_P = 0.1
 NUM_VARS = 50
-NEIGHBORHOOD_SIZE = 3
+NEIGHBORHOOD_SIZE = 1.5
 MAX_ITER = 1e3
 CI_TEST = fisherz
 
 
 NUM_DATASET_SIZES = 1
-NUM_INSTANCES = 500
+NUM_INSTANCES = 10000
 NUM_RANDOM_DAGS = 1
 NUM_ORDERS = 1
-NUM_PERCENTAGE = 1
+NUM_PERCENTAGE = 5
 PERCENT_STEP = 0.20
-percentList = [round((k+1)*PERCENT_STEP, 2) for k in range(NUM_PERCENTAGE) ]
+percentList = [round((k+1)*PERCENT_STEP, 2) for k in range(NUM_PERCENTAGE)]
 
 ALPHA = INITIAL_P/(2**numPVal)
+
+time0 = time.time()
 
 with open(f"output{numPVal}.csv", mode='w', newline='') as file:
     writer = csv.writer(file)
@@ -99,6 +104,8 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
             
             full_ground_truth = to_PAG(digraph, names)
             
+          
+            
             
         
             
@@ -127,23 +134,44 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
                     
                     for percentage in percentList :
                         
+                        print(f"Percentage: {percentage}")
+                        
                         start_pos =int((percentage - PERCENT_STEP)*NUM_VARS)
+                        
+                        
+                        
                         end_pos = int(percentage*NUM_VARS)
                         data_marginal = data[:, 0:end_pos]
+                        names_marginal = permuted_names[0: end_pos]
+                        names_latent = permuted_names[end_pos : ]
                         new_names = permuted_names[ start_pos:end_pos]
                         
-                        ground_truth = full_ground_truth.marginalize(new_names)
+                        print("Everything ok")
                         
+                        ground_truth = dag2pag(digraph, names_marginal)
                         
+                        print("Going for csbs")
                         
                         output_csbs = csbs_fs(data_marginal, independence_test_method=CI_TEST, alpha= ALPHA, initial_graph= output_csbs[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER) 
+                        
+                        print(f"Percentage: {percentage} csbs done")
+                        
                         output_prcdsf = prcdsf_fs(data_marginal, independence_test_method=CI_TEST, alpha= ALPHA,   initial_graph= output_prcdsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)
+                        
+                        print(f"Percentage: {percentage} prcdsf done")
+                        
                         output_scdfsf = s_cdfsf_fs(data_marginal, independence_test_method=CI_TEST, alpha= ALPHA,   initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
+                        
+                        print(f"Percentage: {percentage} scdfsf done")
+                        
                         output_cssu = cssu_fs(data_marginal, alpha= ALPHA,  initial_graph= output_cssu[0], new_node_names= new_names, verbose=False, max_iter= MAX_ITER)
+                        
+                        print(f"Percentage: {percentage} cssu done")
+                        
                         output_fci_fs = fci_fs(data_marginal, independence_test_method=CI_TEST,  initial_sep_sets = output_fci_fs[5], alpha= ALPHA,  initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
-                        output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_node_names = permuted_names[0: end_pos], verbose = False)
+                        output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_TEST, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_node_names = names_marginal, verbose = False)
                         
-                        
+                        print(f"Percentage: {percentage} train done")
                         
                         #Metrics of the marginal models
                         csbs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_csbs[0], output_csbs))
@@ -163,10 +191,12 @@ with open(f"output{numPVal}.csv", mode='w', newline='') as file:
                     fci_stable_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_stable_info))
                     
                    
-                    new_row = csbs_info + prcdsf_info + scdfsf_info + fci_fs_info + fci_stable_info
+                    new_row = csbs_info + prcdsf_info + scdfsf_info + cssu_info + fci_fs_info + fci_stable_info
                     writer.writerow(new_row)
                     
+            
+
             print(f"DAG {j} of  {NUM_RANDOM_DAGS}. ORDER {i} of {NUM_ORDERS}.")
                 
-
+print(f"Time: {time.time() - time0:.3f} seconds")
 print(f"Finished. P-value: {numPVal}.", file=fdLog)

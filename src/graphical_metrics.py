@@ -24,19 +24,23 @@ from causallearn.graph.AdjacencyConfusion import AdjacencyConfusion
 from EndpointConfusion import EndpointConfusion
 
 
-ALGORITHMS = [ "CSBS", "PRCDSF", "S-CDFSF", "FCI-FS", "FCI-STABLE"]
+ALGORITHMS = [ "CSBS", "PRCDSF", "S-CDFSF", "CSSU", "FCI-FS", "FCI-STABLE"]
 GRAPHICAL_SCORE_TYPES = ["l", "a", "c", "t"]
 METRICS_NT = ["numCI", "numEdges", "avgSepSize", "execTime",  "HD", "ED", "SHD"]
-METRICS_T = ["TP", "FP", "TN", "FN", "PREC", "RECALL", "F1"]
+METRICS_T = ["TP", "FP", "TN", "FN", "PREC", "RECALL", "F1", "ACC", "COHEN"]
 METRICS_SC = ["SC_HD", "SC_HDn", "SC_ED", "SC_EDn", "SC_SHD", "SC_SHDn"]
 
 # Code from: https://github.com/amazon-science/causal-self-compatibility
 
-def shd_separed(ground_truth: Union[nx.DiGraph, SCCausalGraph], estim_pag: PAG) -> Tuple[int, int]:
-    if type(ground_truth) == nx.DiGraph:
-        ground_truth = estim_pag._dag_to_pag(ground_truth)
-    elif type(ground_truth) == PAG:
-        ground_truth = ground_truth.graph
+def shd_separed(ground_truth_input: Union[nx.DiGraph, SCCausalGraph], estim_pag: PAG) -> Tuple[int, int]:
+    if type(ground_truth_input) == nx.DiGraph:
+        ground_truth = estim_pag._dag_to_pag(ground_truth_input)
+    elif type(ground_truth_input) == PAG:
+        ground_truth = ground_truth_input.graph
+        
+    elif type(ground_truth_input) == GeneralGraph:
+        ground_truth = ground_truth_input
+                                        
     else:
         raise NotImplementedError()
     adj_errors = 0
@@ -82,7 +86,7 @@ METRICS_SC = ["SCHD", "SCHDn", "SCED", "SCEDn", "SCSHD", "SCSHDn, SCF1, SCP, SCR
 # 0: graph, 1: num_CI_tests, 2: avg_sepset_size, 3: total_exec_time, 4: edges, 5: sep_sets
 
 
-def get_metrics_nt(ground_truth: Union[nx.DiGraph, SCCausalGraph, GeneralGraph], est_pag: PAG, alg_output: Tuple[Any]) :
+def get_metrics_nt(ground_truth: GeneralGraph, est_pag: PAG, alg_output: Tuple[Any]) :
     
    
     
@@ -105,7 +109,7 @@ def get_metrics_nt(ground_truth: Union[nx.DiGraph, SCCausalGraph, GeneralGraph],
     
     return res
 
-def get_metrics_t(ground_truth: Union[nx.DiGraph, SCCausalGraph], est_graph: PAG) :
+def get_metrics_t(ground_truth: GeneralGraph, est_graph: PAG) :
     
     
     
@@ -117,22 +121,28 @@ def get_metrics_t(ground_truth: Union[nx.DiGraph, SCCausalGraph], est_graph: PAG
     
     # METRICS_T = ["TP", "FP", "TN", "FN", "PREC", "RECALL", "F1"]
     
-    linkConfusion = AdjacencyConfusion(ground_truth.graph,  est_graph.graph)
+    linkConfusion = AdjacencyConfusion(ground_truth,  est_graph.graph)
     
     link_prec = linkConfusion.get_adj_precision()
     link_recall = linkConfusion.get_adj_recall()
-    link_f1 = (link_prec * link_recall)/(link_prec + link_recall)
+    link_f1 = (link_prec * link_recall)/(link_prec + link_recall) if link_prec != 0 and link_recall != 0 else 0
+    
+    N_adj_conf = linkConfusion.get_adj_fn() + linkConfusion.get_adj_fp() + linkConfusion.get_adj_tn() + linkConfusion.get_adj_tp()
+    link_acc = (linkConfusion.get_adj_tp() + linkConfusion.get_adj_tn())/N_adj_conf
+    val = ((linkConfusion.get_adj_fn() + linkConfusion.get_adj_tp())*(linkConfusion.get_adj_fp() + linkConfusion.get_adj_tp()) + (linkConfusion.get_adj_fp() + linkConfusion.get_adj_tn())*(linkConfusion.get_adj_fn() + linkConfusion.get_adj_tn())) / (N_adj_conf**2)
+    link_cohen = (link_acc - val)/(1 - val)
+    
     
     
     res = [linkConfusion.get_adj_tp(), linkConfusion.get_adj_fp(), linkConfusion.get_adj_tn(), 
-           linkConfusion.get_adj_fn(), link_prec, link_recall, link_f1]
+           linkConfusion.get_adj_fn(), link_prec, link_recall, link_f1, link_acc, link_cohen]
     
     for endpoint_t in endpoint_types:
-        endpointConfusion = EndpointConfusion(ground_truth.graph, est_graph.graph, endpoint_t)
+        endpointConfusion = EndpointConfusion(ground_truth, est_graph.graph, endpoint_t)
         
         to_add = [endpointConfusion.get__tp(), endpointConfusion.get__fp(), endpointConfusion.get__tn(), 
                   endpointConfusion.get__fn(), endpointConfusion.get__precision(), endpointConfusion.get__recall(),
-                  endpointConfusion.get__F1()]
+                  endpointConfusion.get__F1(), endpointConfusion.accuracy(), endpointConfusion.cohen()]
         
         res.extend(to_add)
         
@@ -143,16 +153,16 @@ def get_alg_marginal_info(ground_truth: Union[nx.DiGraph, SCCausalGraph], est_gr
                           alg_output: Tuple[Any]):
     
     
-    if type(est_graph) == GeneralGraph:
+    if type(est_graph) == GeneralGraph: # est_graph is a PAG
         est_pag = PAG(est_graph)
     elif type(est_graph) != PAG:
         raise NotImplementedError()
     
-    if type(ground_truth) == nx.DiGraph:
+    if type(ground_truth) == nx.DiGraph: # ground_truth is a GeneralGraph
         ground_truth = est_pag._dag_to_pag(ground_truth)
        
     elif type(ground_truth) == PAG:
-        ground_truth = ground_truth
+        ground_truth = ground_truth.graph
     elif type(ground_truth) != GeneralGraph:
         raise NotImplementedError()
 

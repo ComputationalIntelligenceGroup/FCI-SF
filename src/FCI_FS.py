@@ -93,7 +93,7 @@ def removeByPossibleDsep(graph: Graph, independence_test_method: CIT, alpha: flo
     return num_CI, sep_size
 
 
-def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float = 0.05, 
+def fci_fs(dataset: ndarray, independence_test_method = fisherz, alpha: float = 0.05, 
            initial_sep_sets: Dict[Tuple[int, int], Set[int]] = None, initial_graph: GeneralGraph = None, 
            depth: int = -1, max_path_length: int = -1, verbose: bool = False, new_node_names:List[str] = None, 
            **kwargs) -> Tuple[Graph, int, float, float, List[Edge], Dict[Tuple(int, int)]]:
@@ -156,8 +156,12 @@ def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float
             
     if initial_sep_sets is None:
         initial_sep_sets = {}
-
-    independence_test_method = CIT(dataset, method=independence_test_method, **kwargs)
+        
+    if isinstance(independence_test_method, CIT_Base):
+        independence_test_method = independence_test_method
+        
+    else:
+        independence_test_method = CIT(dataset, method=independence_test_method, **kwargs)
 
     ## ------- check parameters ------------
     if (depth is None) or type(depth) != int:
@@ -169,8 +173,6 @@ def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float
 
     old_nodes = initial_graph.get_nodes()
     nodes = []
-    
-    print(f"New node names before FAC: {new_node_names}")
    
 
     # FAS (“Fast Adjacency Search”) is the adjacency search of the PC algorithm, used as a first step for the FCI algorithm.
@@ -178,7 +180,6 @@ def fci_fs(dataset: ndarray, independence_test_method: str=fisherz, alpha: float
                                            initial_graph= initial_graph, initial_sep_sets = initial_sep_sets,
                                          depth=depth, verbose=verbose, new_node_names = new_node_names)
     
-    print(f"New node names after FAC: {graph.get_node_names()}")
     
     num_CI_tests += num_CI
     sepset_size += sep_size

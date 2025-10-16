@@ -42,7 +42,7 @@ class EndpointConfusion:
 
         mask = np.maximum(trueAdj, estAdj)
         
-        print(mask.sum())
+        self.__N = mask.sum()
 
         # Assumes the list of nodes for the two graphs are the same.
         for i in list(range(0, len(nodes))):
@@ -61,6 +61,9 @@ class EndpointConfusion:
         
         zeros = np.zeros((len(nodes), len(nodes)))
         
+        
+        estPositives = np.minimum(estPositives, mask)
+        truePositives = np.minimum(truePositives, mask)
 
         self.__Fp = (np.maximum(estPositives - truePositives, zeros)).sum()
         self.__Fn = (np.maximum(truePositives - estPositives, zeros)).sum()
@@ -97,10 +100,12 @@ class EndpointConfusion:
         return self.__TnCE
 
     def get__precision(self):
-        return self.__Tp / (self.__Tp + self.__Fp)
+        
+      
+        return self.__Tp / (self.__Tp + self.__Fp) if self.__Tp + self.__Fp != 0 else np.nan
 
     def get__recall(self):
-        return self.__Tp / (self.__Tp + self.__Fn)
+        return self.__Tp / (self.__Tp + self.__Fn)  if self.__Tp + self.__Fp != 0 else np.nan
 
     def get__precision_ce(self):
         return self.__TpCE / (self.__TpCE + self.__FpCE)
@@ -112,7 +117,16 @@ class EndpointConfusion:
         P = self.get__precision()
         R = self.get__recall()
         
-        return (P*R)/(P+R)
+        return (P*R)/(P+R) if P is not np.nan and R is not np.nan and P+R != 0 else np.nan
+    
+    def accuracy(self):
+        return (self.__Tp + self.__Tn)/self.__N
+    
+    def cohen(self):
+        
+        val = ((self.__Fn + self.__Tp)*(self.__Fp + self.__Tp) + (self.__Fp + self.__Tn)*(self.__Fn + self.__Tn)) / (self.__N**2)
+        
+        return ((self.__Tp + self.__Tn)/self.__N - val)/(1 - val)
     
     
     def get__F1_ce(self):

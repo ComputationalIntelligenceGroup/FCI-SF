@@ -1,4 +1,0 @@
-Requirements :
-
-	-> Causal-learn
-	-> pgmpy

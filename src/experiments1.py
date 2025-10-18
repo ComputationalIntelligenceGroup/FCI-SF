@@ -70,11 +70,30 @@ except Exception:
 
 import time 
 
-numPVal =  1
+#!/usr/bin/env python3
+import argparse
+
+# Crear parser
+parser = argparse.ArgumentParser(description="Ejecuta experimento con parámetros configurables.")
+
+parser.add_argument("--numPVal", type=int, required=True, help="Número de pVal")
+parser.add_argument("--numInstances", type=int, required=True, help="Número de instancias de datos")
+parser.add_argument("--numVars", type=int, required=True, help="Número de variables")
+
+
+args = parser.parse_args()
+
+# Asignar a variables
+numPVal = args.numPVal
+NUM_INSTANCES = args.numInstances
+NUM_VARS = args.numVars
+
+
+
 
 
 INITIAL_P = 0.1
-NUM_VARS = 100
+
 NEIGHBORHOOD_SIZE = 1 # We halve NEIGHBORHOOD_SIZE because cdt doubles the expected neightborhood size
 MAX_ITER = 1e3
 CI_TEST = fisherz
@@ -83,7 +102,7 @@ CI_TEST = fisherz
 NUM_DATASET_SIZES = 1
 NUM_RANDOM_DAGS = 10
 NUM_ORDERS = 1
-NUM_INSTANCES = 3000
+
 
 NUM_PERCENTAGE = 5
 PERCENT_STEP = 0.20
@@ -104,7 +123,7 @@ file = open(f"../../logs/output_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_
 file.close()
 
 
-with open(f"../../logs/output_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_RANDOM_DAGS}_nbSize{NEIGHBORHOOD_SIZE*2}.txt", "a", buffering=1) as file1:  # line-buffered in text mode
+with open(f"../../logs/output_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE*2}.txt", "a", buffering=1) as file1:  # line-buffered in text mode
    
         
     for tam_mult in range(0, NUM_DATASET_SIZES): 

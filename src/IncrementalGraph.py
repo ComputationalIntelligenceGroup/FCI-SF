@@ -86,6 +86,16 @@ class IncrementalGraph:
         nodes = self.G.get_nodes()
         self.G.add_edge(Edge(nodes[i], nodes[j], Endpoint.CIRCLE, Endpoint.CIRCLE))
         
+    def add_edge_directed(self, i: int, j: int):
+        
+        nodes = self.G.get_nodes()
+        self.G.add_edge(Edge(nodes[i], nodes[j], Endpoint.CIRCLE, Endpoint.ARROW))
+        
+    def add_edge_bidirected(self, i: int, j: int):
+        
+        nodes = self.G.get_nodes()
+        self.G.add_edge(Edge(nodes[i], nodes[j], Endpoint.ARROW, Endpoint.ARROW))
+        
         
         
         

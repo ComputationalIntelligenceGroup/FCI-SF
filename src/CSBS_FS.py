@@ -24,7 +24,7 @@ def csbs_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float =
     
     # Initialization
     
-    print("Starting csbs")
+   
     
     num_CI_tests = 0
     sepset_size = 0

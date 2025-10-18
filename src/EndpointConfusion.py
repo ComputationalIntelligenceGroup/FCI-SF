@@ -117,7 +117,8 @@ class EndpointConfusion:
         P = self.get__precision()
         R = self.get__recall()
         
-        return (P*R)/(P+R) if P is not np.nan and R is not np.nan and P+R != 0 else np.nan
+        return 2*(P * R) / (P + R) if not np.isnan(P) and not np.isnan(R) and (P + R) != 0 else (0 if (P + R) == 0 else np.nan)
+
     
     def accuracy(self):
         return (self.__Tp + self.__Tn)/self.__N
@@ -126,7 +127,7 @@ class EndpointConfusion:
         
         val = ((self.__Fn + self.__Tp)*(self.__Fp + self.__Tp) + (self.__Fp + self.__Tn)*(self.__Fn + self.__Tn)) / (self.__N**2)
         
-        return ((self.__Tp + self.__Tn)/self.__N - val)/(1 - val)
+        return ((self.__Tp + self.__Tn)/self.__N - val)/(1 - val) if val != 1 else 1
     
     
     def get__F1_ce(self):

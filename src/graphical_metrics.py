@@ -125,12 +125,14 @@ def get_metrics_t(ground_truth: GeneralGraph, est_graph: PAG) :
     
     link_prec = linkConfusion.get_adj_precision()
     link_recall = linkConfusion.get_adj_recall()
-    link_f1 = (link_prec * link_recall)/(link_prec + link_recall) if link_prec != 0 and link_recall != 0 else 0
+    link_f1 = (link_prec * link_recall)/(link_prec + link_recall) if link_prec + link_recall != 0 else 0
     
     N_adj_conf = linkConfusion.get_adj_fn() + linkConfusion.get_adj_fp() + linkConfusion.get_adj_tn() + linkConfusion.get_adj_tp()
     link_acc = (linkConfusion.get_adj_tp() + linkConfusion.get_adj_tn())/N_adj_conf
     val = ((linkConfusion.get_adj_fn() + linkConfusion.get_adj_tp())*(linkConfusion.get_adj_fp() + linkConfusion.get_adj_tp()) + (linkConfusion.get_adj_fp() + linkConfusion.get_adj_tn())*(linkConfusion.get_adj_fn() + linkConfusion.get_adj_tn())) / (N_adj_conf**2)
-    link_cohen = (link_acc - val)/(1 - val)
+    
+  
+    link_cohen = (link_acc - val)/(1 - val) if val != 1 else 1
     
     
     

@@ -1,0 +1,15 @@
+Going for csbsPercentage: 0.2 csbs done. Exectime: 0.3318026065826416Percentage: 0.2 prcdsf done. Exectime: 0.5507662296295166Percentage: 0.2 scdfsf done. Exectime: 0.32448697090148926Percentage: 0.2 cssu done. Exectime: 0.2388899326324463Percentage: 0.2 train done 
+Going for csbsPercentage: 0.4 csbs done. Exectime: 0.8741681575775146Percentage: 0.4 prcdsf done. Exectime: 1.9730401039123535Percentage: 0.4 scdfsf done. Exectime: 1.0591840744018555Percentage: 0.4 cssu done. Exectime: 0.8350152969360352Percentage: 0.4 train done 
+Going for csbsPercentage: 0.6 csbs done. Exectime: 1.9045138359069824Percentage: 0.6 prcdsf done. Exectime: 0.7134175300598145Percentage: 0.6 scdfsf done. Exectime: 2.481490135192871Percentage: 0.6 cssu done. Exectime: 0.30994319915771484Percentage: 0.6 train done 
+Going for csbsPercentage: 0.8 csbs done. Exectime: 0.6825788021087646Percentage: 0.8 prcdsf done. Exectime: 1.4939842224121094Percentage: 0.8 scdfsf done. Exectime: 5.004128456115723Percentage: 0.8 cssu done. Exectime: 0.5424978733062744Percentage: 0.8 train done 
+Going for csbsPercentage: 1.0 csbs done. Exectime: 1.1758215427398682Percentage: 1.0 prcdsf done. Exectime: 1.5644021034240723Percentage: 1.0 scdfsf done. Exectime: 1.6666593551635742Percentage: 1.0 cssu done. Exectime: 0.8920152187347412Percentage: 1.0 train done 
+DATA: 300. DAG 1 of  10. ORDER 1 of 2. 
+DATA: 300. AvgTime: 28.480 seconds. AvgTimeMarginal 1.692 seconds. 
+Going for csbsPercentage: 0.2 csbs done. Exectime: 0.30469274520874023Percentage: 0.2 prcdsf done. Exectime: 0.3581984043121338Percentage: 0.2 scdfsf done. Exectime: 0.3082454204559326Percentage: 0.2 cssu done. Exectime: 0.042443037033081055Percentage: 0.2 train done 
+Going for csbsPercentage: 0.4 csbs done. Exectime: 0.9875476360321045Percentage: 0.4 prcdsf done. Exectime: 1.4882915019989014Percentage: 0.4 scdfsf done. Exectime: 1.3680052757263184Percentage: 0.4 cssu done. Exectime: 1.0732853412628174Percentage: 0.4 train done 
+Going for csbsPercentage: 0.6 csbs done. Exectime: 1.9610953330993652Percentage: 0.6 prcdsf done. Exectime: 3.8069570064544678Percentage: 0.6 scdfsf done. Exectime: 3.068171739578247Percentage: 0.6 cssu done. Exectime: 0.5017645359039307Percentage: 0.6 train done 
+Going for csbsPercentage: 0.8 csbs done. Exectime: 3.4188363552093506Percentage: 0.8 prcdsf done. Exectime: 1.5011990070343018Percentage: 0.8 scdfsf done. Exectime: 1.2472126483917236Percentage: 0.8 cssu done. Exectime: 0.801323652267456Percentage: 0.8 train done 
+Going for csbsPercentage: 1.0 csbs done. Exectime: 5.0151591300964355Percentage: 1.0 prcdsf done. Exectime: 3.203598976135254Percentage: 1.0 scdfsf done. Exectime: 1.6292312145233154Percentage: 1.0 cssu done. Exectime: 5.908693552017212Percentage: 1.0 train done 
+DATA: 300. DAG 1 of  10. ORDER 2 of 2. 
+DATA: 300. AvgTime: 70.814 seconds. AvgTimeMarginal 3.739 seconds. 
+Going for csbsPercentage: 0.2 csbs done. Exectime: 0.24470758438110352Percentage: 0.2 prcdsf done. Exectime: 0.2886054515838623

@@ -1,13 +1,10 @@
 #!/home/chema/anaconda3/envs/FCI-FS_env/bin/python
 
 """
-experiments1
-"""
-
-
+experimen
 
 # -*- coding: utf-8 -*-
-"""
+
 Created on Sun Jan 26 19:26:47 2025
 
 @author: chdem
@@ -73,20 +70,20 @@ except Exception:
 
 import time 
 
-numPVal =  0
+numPVal =  1
 
 
-INITIAL_P = 0.05
-NUM_VARS = 30
+INITIAL_P = 0.1
+NUM_VARS = 100
 NEIGHBORHOOD_SIZE = 1 # We halve NEIGHBORHOOD_SIZE because cdt doubles the expected neightborhood size
 MAX_ITER = 1e3
 CI_TEST = fisherz
 
 
 NUM_DATASET_SIZES = 1
-NUM_INSTANCES = 300
 NUM_RANDOM_DAGS = 10
-NUM_ORDERS = 2
+NUM_ORDERS = 1
+NUM_INSTANCES = 3000
 
 NUM_PERCENTAGE = 5
 PERCENT_STEP = 0.20
@@ -103,7 +100,7 @@ if NUM_VARS % NUM_PERCENTAGE != 0:
    raise AssertionError("NUM_VARS should be divisible by NUM_PERCENTAGE")
 
 # Empty the file
-file = open(f"../../logs/output_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_RANDOM_DAGS}_nbSize{NEIGHBORHOOD_SIZE*2}.txt", mode='w')
+file = open(f"../../logs/output_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE*2}.txt", mode='w')
 file.close()
 
 

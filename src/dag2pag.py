@@ -32,93 +32,14 @@ def dag2pag(ground_truth_DAG, obsVars: List[str], new = False) -> GeneralGraph:
     
     independence_test_method = D_Sep(data, name_index_mapping = obsVars, true_dag=ground_truth_DAG)
     
-    if not new:
-        output_fci = fci_fs(data, independence_test_method=independence_test_method, initial_sep_sets = {}, initial_graph = GeneralGraph([]), new_node_names = obsVars, verbose = False)
+
+    output_fci = fci_fs(data, independence_test_method=independence_test_method, initial_sep_sets = {}, initial_graph = GeneralGraph([]), new_node_names = obsVars, verbose = False)
         
-        print(f"Exec time: {output_fci[3]}")
+       
         
-        return output_fci[0]
+    return output_fci[0]
     
-    else: 
-        dag = DAG(arcs=set(ground_truth_DAG.edges()))
-
-        # 'L' es una variable latente
-        name_num = 0
-        name_map = {}
-        for node_name in ground_truth_DAG.nodes:
-            name_map[node_name] = name_num
-            name_num += 1
-            
-        latent_nodes = set(ground_truth_DAG.nodes) - set(obsVars)
-        
-        mag = dag.marginal_mag(latent_nodes)
-        
-        dir_coll, bidir_coll, undir_edges = get_colliders_mag(mag)
-        
-        
-            
-        
-        inc_graph = IncrementalGraph( len(obsVars), IncrementalGraph([]), new_node_names = obsVars)
-        
-        for a, b in dir_coll:
-            
-            inc_graph.add_edge_directed(name_map[a], name_map[b])
-            
-        for a, b in bidir_coll:
-            inc_graph.add_edge_bidirected(name_map[a], name_map[b])
-            
-        for a, b in undir_edges:
-            inc_graph.add_edge_with_circles(name_map[a], name_map[b])
-            
-            
-        
-        """
-        
-        graph = inc_graph.G
-        
-        num_CI, sep_size = removeByPossibleDsep(graph, independence_test_method, 0.5, {}, [])
-        
-
-        fci.reorientAllWith(graph, Endpoint.CIRCLE)
-        fci.rule0(graph, nodes, sep_sets, None, verbose)
-
-        change_flag = True
-        
-
-        while change_flag:
-            change_flag = False
-            change_flag = fci.rulesR1R2cycle(graph, None, change_flag, verbose)
-            change_flag = fci.ruleR3(graph, sep_sets, None, change_flag, verbose)
-
-            if change_flag:
-                change_flag = fci.ruleR4B(graph, max_path_length, dataset, independence_test_method, alpha, sep_sets,
-                                      change_flag,
-                                      None, verbose)
-
-                
-                if verbose:
-                    print("Epoch")
-
-            # rule 5
-            change_flag = fci.ruleR5(graph, change_flag, verbose)
-            
-            # rule 6
-            change_flag = fci.ruleR6(graph, change_flag, verbose)
-            
-            # rule 7
-            change_flag = fci.ruleR7(graph, change_flag, verbose)
-            
-            # rule 8
-            change_flag = fci.rule8(graph,nodes, change_flag)
-            
-            # rule 9
-            change_flag = fci.rule9(graph, nodes, change_flag)
-            # rule 10
-            change_flag = fci.rule10(graph, change_flag)
-
-        graph.set_pag(True)
-        
-        """
+    
         
         
 def filter_second_repeated(s):

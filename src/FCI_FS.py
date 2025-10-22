@@ -148,7 +148,7 @@ def fci_fs(dataset: ndarray, independence_test_method = fisherz, alpha: float = 
     sepset_size = 0
     initial_time = time.time()
     
-    if dataset.shape[0] < dataset.shape[1]:
+    if dataset.shape[0] < dataset.shape[1] and verbose:
         warnings.warn("The number of features is much larger than the sample size!")
         
     if initial_graph is None:

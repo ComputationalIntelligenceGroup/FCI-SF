@@ -102,7 +102,7 @@ def csbs_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float =
     
     if verbose:
         print("CSBS: hill-climbing")
-    mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)
+        mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)
         
     avg_sepset_size = sepset_size/num_CI_tests
     total_exec_time = time.time() - initial_time

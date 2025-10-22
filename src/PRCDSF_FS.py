@@ -54,7 +54,7 @@ def prcdsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: float
         #Relevance analysis
         for i in range(j):
             
-            S = tuple() if mb.neighbors(i) == [] else tuple(mb.neighbors(i))
+            S = tuple() if mb.neighbors(i).size == 0 else tuple(mb.neighbors(i))
             
             num_CI_tests += 1
             sepset_size += len(S)

@@ -17,7 +17,11 @@ from src.causal_graphs.sc_causal_graph import SCCausalGraph
 
 from causallearn.graph.Endpoint import Endpoint
 from causallearn.graph.GeneralGraph import GeneralGraph
-from causallearn.graph.AdjacencyConfusion import AdjacencyConfusion
+
+
+
+
+from AdjacencyConfusion import AdjacencyConfusion
 
 
 
@@ -47,7 +51,6 @@ def shd_separed(ground_truth_input: Union[nx.DiGraph, SCCausalGraph], estim_pag:
     endpoint_errors = 0
     for x, y in [(x.get_name(), y.get_name()) for i, x in enumerate(ground_truth.get_nodes()) for j, y in
                  enumerate(ground_truth.get_nodes()) if i < j]:
-        
         
         if ground_truth.is_adjacent_to(ground_truth.get_node(x), ground_truth.get_node(y)):
             gt_edge = ground_truth.get_edge(ground_truth.get_node(x), ground_truth.get_node(y))

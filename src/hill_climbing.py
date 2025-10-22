@@ -4,7 +4,7 @@ import networkx as nx
 import pandas as pd
 
 import logging
-logging.getLogger('pgmpy').setLevel(logging.WARNING)
+logging.getLogger('pgmpy').setLevel(logging.CRITICAL )
 
 from pgmpy.estimators import BICGauss, ExpertKnowledge, HillClimbSearch
 

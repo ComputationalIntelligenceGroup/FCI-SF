@@ -105,7 +105,7 @@ class EndpointConfusion:
         return self.__Tp / (self.__Tp + self.__Fp) if self.__Tp + self.__Fp != 0 else np.nan
 
     def get__recall(self):
-        return self.__Tp / (self.__Tp + self.__Fn)  if self.__Tp + self.__Fp != 0 else np.nan
+        return self.__Tp / (self.__Tp + self.__Fn)  if self.__Tp + self.__Fn != 0 else np.nan
 
     def get__precision_ce(self):
         return self.__TpCE / (self.__TpCE + self.__FpCE)
@@ -121,11 +121,13 @@ class EndpointConfusion:
 
     
     def accuracy(self):
-        return (self.__Tp + self.__Tn)/self.__N
+        
+        return (self.__Tp + self.__Tn)/self.__N if self.__N != 0 else 1 
+    
     
     def cohen(self):
         
-        val = ((self.__Fn + self.__Tp)*(self.__Fp + self.__Tp) + (self.__Fp + self.__Tn)*(self.__Fn + self.__Tn)) / (self.__N**2)
+        val = ((self.__Fn + self.__Tp)*(self.__Fp + self.__Tp) + (self.__Fp + self.__Tn)*(self.__Fn + self.__Tn)) / (self.__N**2) if self.__N != 0 else 1
         
         return ((self.__Tp + self.__Tn)/self.__N - val)/(1 - val) if val != 1 else 1
     

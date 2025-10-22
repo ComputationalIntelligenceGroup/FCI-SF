@@ -65,9 +65,9 @@ except Exception:
 # --- FIN BLOQUE ---
 
 
-"""
 
-#!/usr/bin/env python3
+
+
 import argparse
 
 # Crear parser
@@ -84,15 +84,14 @@ numPVal = args.numPVal
 NUM_INSTANCES = args.numInstances
 NUM_VARS = args.numVars
 
+
+
+
 """
-
-
-
-
 numPVal = 0
 NUM_INSTANCES = 300
 NUM_VARS = 10
-
+"""
 
 INITIAL_P = 0.1
 

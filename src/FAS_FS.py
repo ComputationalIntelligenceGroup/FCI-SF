@@ -8,7 +8,7 @@ import numpy as np
 
 from causallearn.graph.GeneralGraph import GeneralGraph
 from causallearn.utils.cit import *
-
+from noCache_CI_Test import myTest
 
 from IncrementalGraph import IncrementalGraph
 
@@ -56,7 +56,7 @@ def fas_fs(data: ndarray,  independence_test_method: CIT_Base, alpha: float = 0.
     ## ------- check parameters ------------
     if type(data) != np.ndarray:
         raise TypeError("'data' must be 'np.ndarray' type!")
-    if not isinstance(independence_test_method, CIT_Base):
+    if not isinstance(independence_test_method, CIT_Base) and not isinstance(independence_test_method, myTest):
         raise TypeError("'independence_test_method' must be 'CIT_Base' type!")
     if type(alpha) != float or alpha <= 0 or alpha >= 1:
         raise TypeError("'alpha' must be 'float' type and between 0 and 1!")

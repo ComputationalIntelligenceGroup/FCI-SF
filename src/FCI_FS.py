@@ -15,6 +15,8 @@ from causallearn.utils.DepthChoiceGenerator import DepthChoiceGenerator
 from causallearn.utils.cit import *
 import causallearn.search.ConstraintBased.FCI as fci
 
+from noCache_CI_Test import myTest
+
 from FAS_FS import fas_fs 
 
 
@@ -157,7 +159,8 @@ def fci_fs(dataset: ndarray, independence_test_method = fisherz, alpha: float = 
     if initial_sep_sets is None:
         initial_sep_sets = {}
         
-    if isinstance(independence_test_method, CIT_Base):
+        
+    if isinstance(independence_test_method, CIT_Base) or isinstance(independence_test_method, myTest) :
         independence_test_method = independence_test_method
         
     else:

@@ -101,27 +101,14 @@ class D_Sep(CIT_Base):
         true_dag:   nx.DiGraph object, the true DAG
         '''
         super().__init__(data, **kwargs)  # data is just a placeholder, not used in D_Separation
-        self.check_cache_method_consistent('d_separation', NO_SPECIFIED_PARAMETERS_MSG)
         self.true_dag = true_dag
         self.name_index_mapping = name_index_mapping
         
         # import networkx here violates PEP8; but we want to prevent unnecessary import at the top (it's only used here)
 
     def __call__(self, X, Y, condition_set=None):
-        Xs, Ys, condition_set, cache_key = self.get_formatted_XYZ_and_cachekey(X, Y, condition_set)
-        if cache_key in self.pvalue_cache: return self.pvalue_cache[cache_key]
-        p = float(nx.is_d_separator(self.true_dag, {self.name_index_mapping[Xs[0]]}, {self.name_index_mapping[Ys[0]]}, {self.name_index_mapping[z] for z in condition_set}))
+        
+    
         # pvalue is bool here: 1 if is_d_separated and 0 otherwise. So heuristic comparison-based uc_rules will not work.
 
-        # here we use networkx's d_separation implementation.
-        # an alternative is to use causal-learn's own d_separation implementation in graph class:
-        #   self.true_dag.is_dseparated_from(
-        #       self.true_dag.nodes[Xs[0]], self.true_dag.nodes[Ys[0]], [self.true_dag.nodes[_] for _ in condition_set])
-        #   where self.true_dag is an instance of GeneralGrpah class.
-        # I have checked the two implementations: they are equivalent (when the graph is DAG),
-        # and generally causal-learn's implementation is faster.
-        # but just for now, I still use networkx's, for two reasons:
-        # 1. causal-learn's implementation sometimes stops working during run (haven't check detailed reasons)
-        # 2. GeneralGraph class will be hugely refactored in the near future.
-        self.pvalue_cache[cache_key] = p
-        return p
+        return float(nx.is_d_separator(self.true_dag, {self.name_index_mapping[X]}, {self.name_index_mapping[Y]}, {self.name_index_mapping[z] for z in condition_set}))

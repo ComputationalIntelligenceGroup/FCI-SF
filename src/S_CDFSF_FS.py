@@ -10,6 +10,8 @@ from causallearn.graph.Graph import Graph
 from causallearn.graph.GeneralGraph import GeneralGraph 
 from causallearn.utils.cit import *
 
+from noCache_CI_Test import myTest
+
 from IncrementalGraph import IncrementalGraph
 from exists_separator import _exists_separator
 import hill_climbing as hc
@@ -37,7 +39,8 @@ def s_cdfsf_fs(data: ndarray, independence_test_method: str=fisherz, alpha: floa
     if initial_graph is None:
         initial_graph = GeneralGraph([])
 
-    independence_test_method = CIT(data, method=independence_test_method, **kwargs)
+    if not isinstance(independence_test_method, CIT_Base) and not isinstance(independence_test_method, myTest):
+        raise TypeError("'independence_test_method' must be 'CIT_Base' type!")
     mb = IncrementalGraph(0, initial_graph)
     num_new_vars = data.shape[1] - mb.G.get_num_nodes()
 

@@ -34,9 +34,8 @@ import graphical_metrics as g_m
 from dag2pag import dag2pag
 from noCache_CI_Test import myTest
 import os
-import psutil, tracemalloc
-tracemalloc.start()
-_process = psutil.Process(os.getpid())
+
+
 
 
 
@@ -73,12 +72,16 @@ except Exception:
 
 import argparse
 
+
+
 # Crear parser
 parser = argparse.ArgumentParser(description="Ejecuta experimento con parámetros configurables.")
 
-parser.add_argument("--numPVal", type=int, required=True, help="Número de pVal")
-parser.add_argument("--numInstances", type=int, required=True, help="Número de instancias de datos")
-parser.add_argument("--numVars", type=int, required=True, help="Número de variables")
+parser.add_argument("--numPVal", type=int, required=True, help="Number of pVal")
+parser.add_argument("--numInstances", type=int, required=True, help="Data size")
+parser.add_argument("--numVars", type=int, required=True, help="Number of variables")
+parser.add_argument("--numDAGs", type=int, required=True, help="Number of random DAGs")
+parser.add_argument("--numOrds", type=int, required=True, help="Number of random orders")
 
 
 args = parser.parse_args()
@@ -86,15 +89,17 @@ args = parser.parse_args()
 numPVal = args.numPVal
 NUM_INSTANCES = args.numInstances
 NUM_VARS = args.numVars
+NUM_RANDOM_DAGS = args.numDAGs
+NUM_ORDERS = args.numOrds
 
 """
-
-
 numPVal = 0
-NUM_INSTANCES = 300
-NUM_VARS = 100
-
+NUM_INSTANCES = 375
+NUM_VARS = 10
+NUM_RANDOM_DAGS = 10
+NUM_ORDERS = 2
 """
+
 INITIAL_P = 0.1
 
 NEIGHBORHOOD_SIZE = 2 
@@ -103,8 +108,7 @@ CI_TEST = fisherz
 
 
 NUM_DATASET_SIZES = 1
-NUM_RANDOM_DAGS = 10
-NUM_ORDERS = 1
+
 
 
 NUM_PERCENTAGE = 5
@@ -118,6 +122,8 @@ time0 = time.time()
 
 time_marginal = 0
 
+time_iter = 0
+
 if NUM_VARS % NUM_PERCENTAGE != 0:
    raise AssertionError("NUM_VARS should be divisible by NUM_PERCENTAGE")
 
@@ -127,30 +133,6 @@ file.close()
 
 
 with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}.txt", "a", buffering=1) as file1:  # line-buffered in text mode
-
-    def log_mem_usage(etiqueta, snapshot_prev=None, rss_prev=None):
-        rss = _process.memory_info().rss
-        if snapshot_prev is None:
-            file1.write(f"--- Memoria {etiqueta}: RSS = {rss/1024**2:.2f} MB\n")
-            return tracemalloc.take_snapshot(), rss
-        else:
-            diff_rss = rss - (rss_prev or 0)
-            file1.write(f"--- Memoria {etiqueta}: RSS = {rss/1024**2:.2f} MB "
-                        f"(cambio: {diff_rss/1024**2:+.2f} MB)\n")
-    
-            snapshot_after = tracemalloc.take_snapshot()
-            try:
-                top_stats = snapshot_after.compare_to(snapshot_prev, 'lineno')
-            except Exception as e:
-                file1.write(f"      (Error en tracemalloc.compare_to: {e})\n")
-                return snapshot_after, rss
-    
-            if top_stats:
-                file1.write("      Principales diferencias de asignación de memoria:\n")
-                for stat in top_stats[:5]:
-                    file1.write(f"         {stat}\n")
-    
-            return snapshot_after, rss
 
    
         
@@ -191,15 +173,15 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                 ng_size = NEIGHBORHOOD_SIZE/2
                 gen = AcyclicGraphGenerator('linear', npoints=NUM_INSTANCES, nodes=NUM_VARS, dag_type='erdos', expected_degree = ng_size ) 
                 
-                rss_before_gen = _process.memory_info().rss
-                snapshot_before_gen = tracemalloc.take_snapshot()
                 df, digraph = gen.generate()
                 # Medir memoria tras generación del grafo
-                log_mem_usage("después de generar el grafo", snapshot_before_gen, rss_before_gen)
+                
                             
                 names = df.columns
              
                 for i in range(0, NUM_ORDERS):
+                    
+                        time_iter = time.time()
         
                         random_permutation = np.random.permutation(NUM_VARS)
                         df_permuted = df.iloc[:, random_permutation]
@@ -216,6 +198,7 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                         output_cssu = (GeneralGraph([]), 0, 0, 0)
                         output_fci_fs = (GeneralGraph([]), 0, 0, 0, [], {})
                         output_fci_stable = (GeneralGraph([]), 0, 0, 0, [], {})
+                        
                         
                         csbs_info = []
                         prcdsf_info = []
@@ -240,10 +223,7 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                             
                             
                             time_marginal0 = time.time()
-                            rss_before_dag = _process.memory_info().rss
-                            snapshot_before_dag = tracemalloc.take_snapshot()
                             ground_truth = dag2pag(digraph, names_marginal)
-                            log_mem_usage("después de dag2pag", snapshot_before_dag, rss_before_dag)
                             time_marginal += time.time() - time_marginal0
                             
                       
@@ -259,36 +239,14 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                          
                             # === Instrumentación alrededor de cada llamada ===
                             
-                            snap_csbs, rss_csbs = log_mem_usage("antes de csbs_fs")
+                            
                             output_csbs = csbs_fs(data_marginal, independence_test_method=CI_test, alpha= ALPHA, initial_graph= output_csbs[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER) 
-                            log_mem_usage("después de csbs_fs", snapshot_prev=snap_csbs, rss_prev=rss_csbs)
-                            file1.flush(); os.fsync(file1.fileno())
-                            
-                            snap_prcdsf, rss_prcdsf = log_mem_usage("antes de prcdsf_fs")
                             output_prcdsf = prcdsf_fs(data_marginal, independence_test_method=CI_test, alpha= ALPHA,   initial_graph= output_prcdsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)
-                            log_mem_usage("después de prcdsf_fs", snapshot_prev=snap_prcdsf, rss_prev=rss_prcdsf)
-                            file1.flush(); os.fsync(file1.fileno())
-                            
-                            snap_scdfsf, rss_scdfsf = log_mem_usage("antes de s_cdfsf_fs")
                             output_scdfsf = s_cdfsf_fs(data_marginal, independence_test_method=CI_test, alpha= ALPHA,   initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
-                            log_mem_usage("después de s_cdfsf_fs", snapshot_prev=snap_scdfsf, rss_prev=rss_scdfsf)
-                            file1.flush(); os.fsync(file1.fileno())
-                            
-                            snap_cssu, rss_cssu = log_mem_usage("antes de cssu_fs")
                             output_cssu = cssu_fs(data_marginal, alpha= ALPHA,  initial_graph= output_cssu[0], new_node_names= new_names, verbose=False, max_iter= MAX_ITER)
-                            log_mem_usage("después de cssu_fs", snapshot_prev=snap_cssu, rss_prev=rss_cssu)
-                            file1.flush(); os.fsync(file1.fileno())
-                            
-                            snap_fci_fs, rss_fci_fs = log_mem_usage("antes de fci_fs (FCI-FS)")
                             output_fci_fs = fci_fs(data_marginal, independence_test_method=CI_test,  initial_sep_sets = output_fci_fs[5], alpha= ALPHA,  initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
-                            log_mem_usage("después de fci_fs (FCI-FS)", snapshot_prev=snap_fci_fs, rss_prev=rss_fci_fs)
-                            file1.flush(); os.fsync(file1.fileno())
-                            
-                            snap_fci_stable, rss_fci_stable = log_mem_usage("antes de fci_fs (FCI estable)")
                             output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_test, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_node_names = names_marginal, verbose = False)
-                            log_mem_usage("después de fci_fs (FCI estable)", snapshot_prev=snap_fci_stable, rss_prev=rss_fci_stable)
-                            file1.flush(); os.fsync(file1.fileno())
-
+                         
                             
                             
                             file1.write(f"Percentage: {percentage}. ExecTimes:  csbs - {output_csbs[3]}. prcdsf - {output_prcdsf[3]}. scdfsf - {output_scdfsf[3]}. cssu - {output_cssu[3]}. FCI-FS - {output_fci_fs[3]}. FCI - {output_fci_stable[3]}\n")
@@ -319,10 +277,12 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                         gc.collect()
                         
                         file2.flush()
-                        #os.fdatasync(file2.fileno())
+                        os.fdatasync(file2.fileno())
+                        
+                        time_iter = time.time() - time_iter
               
                         file1.write(f"DATA: {dataset_size}. DAG {j+1} of  {NUM_RANDOM_DAGS}. ORDER {i+1} of {NUM_ORDERS}. \n")
-                        file1.write(f"DATA: {dataset_size}. AvgTime: {(time.time() - time0)/(j+1) :.3f} seconds. AvgTimeMarginal {time_marginal/(j+1):.3f} seconds. \n")
+                        file1.write(f"DATA: {dataset_size}. TimeIer: {time_iter :.3f}.AvgTime: {(time.time() - time0)/((j*NUM_ORDERS)+(i+1)) :.3f} seconds. AvgTimeMarginal {time_marginal/((j*NUM_ORDERS)+(i+1)):.3f} seconds. \n")
                         file1.flush()              # flush Python’s buffer
                         os.fsync(file1.fileno())   # force OS to write to disk
                         
@@ -335,6 +295,6 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                         
                     
     
-    file1.write(f"FINISHED. AvgTime: {(time.time() - time0)/NUM_RANDOM_DAGS :.3f} seconds. AvgTimeMarginal {time_marginal/NUM_RANDOM_DAGS:.3f} seconds. \n")
+    file1.write(f"FINISHED. AvgTime: {(time.time() - time0)/(NUM_RANDOM_DAGS*NUM_ORDERS) :.3f} seconds. AvgTimeMarginal {time_marginal/NUM_RANDOM_DAGS:.3f} seconds. \n")
     file1.flush()              # flush Python’s buffer
     os.fsync(file1.fileno())   # force OS to write to disk

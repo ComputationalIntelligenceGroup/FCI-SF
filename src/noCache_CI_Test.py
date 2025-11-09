@@ -53,8 +53,11 @@ def _fast_partial_corr_jit(X, Y, Z):
         # Just Pearson correlation
         r = np.dot(X, Y) / (np.linalg.norm(X) * np.linalg.norm(Y))
     else:
-        ZTZ_inv = np.linalg.inv(Z.T @ Z)
-        Z_pinv = ZTZ_inv @ Z.T
+
+        
+        Q, R = np.linalg.qr(Z)
+        Z_pinv = np.linalg.inv(R) @ Q.T
+
         X_res = X - Z @ (Z_pinv @ X)
         Y_res = Y - Z @ (Z_pinv @ Y)
         r = np.dot(X_res, Y_res) / (np.linalg.norm(X_res) * np.linalg.norm(Y_res))

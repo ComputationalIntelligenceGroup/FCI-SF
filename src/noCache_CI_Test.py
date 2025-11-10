@@ -8,28 +8,49 @@ Created on Thu Oct 30 19:56:41 2025
 from pgmpy.estimators.CITests import *
 import pandas as pd
 import numpy as np
-from scipy.stats import pearsonr
-
+from math import log, sqrt
 from numba import njit
+from scipy.stats import norm
 
 
 class myTest:
     
     def __init__(self, data, **kwargs):
         self.data = data
+        self.correlation_matrix = np.corrcoef(data.T)
+        self.sample_size, self.num_features = data.shape
+        #self.full_precision = np.linalg.inv(self.correlation_matrix)
         
         
 
    
     
     def __call__(self, X, Y, condition_set=None):
-        if condition_set is not None:
-            condition_set  = list(condition_set)
-        else:
-            condition_set = []
+        
+        
+        x, y = sorted([int(X), int(Y)])
+        condition_set = sorted(set(map(int, condition_set or [])))
 
-        r, p = fast_partial_corr_jit_df(self.data, X, Y, condition_set)
-          
+        if x in condition_set or y in condition_set:
+            raise ValueError("X or Y in conditioning set.")
+
+        var_idx = [x, y] + condition_set
+        sub_corr_matrix = self.correlation_matrix[np.ix_(var_idx, var_idx)]
+
+        
+        try:
+            inv = np.linalg.inv(sub_corr_matrix)
+            #inv = self.full_precision[np.ix_(var_idx, var_idx)]
+        except np.linalg.LinAlgError:
+            inv = np.linalg.pinv(sub_corr_matrix)
+        r = -inv[0, 1] / sqrt(abs(inv[0, 0] * inv[1, 1]))
+        if abs(r) >= 1: r = (1. - np.finfo(float).eps) * np.sign(r) # may happen when samplesize is very small or relation is deterministic
+        Z = 0.5 * log((1 + r) / (1 - r))
+        X = sqrt(self.sample_size - len(condition_set) - 3) * abs(Z)
+        p = 2 * (1 - norm.cdf(abs(X)))
+        
+        #r, p = fast_partial_corr_jit_df(self.data, X, Y, condition_set)
+        
         return p
     
 

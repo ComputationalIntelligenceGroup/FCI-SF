@@ -128,11 +128,11 @@ if NUM_VARS % NUM_PERCENTAGE != 0:
    raise AssertionError("NUM_VARS should be divisible by NUM_PERCENTAGE")
 
 # Empty the file
-file = open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}.txt", mode='w')
+file = open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}_nDAGs{NUM_RANDOM_DAGS}_nOrders{NUM_ORDERS}.txt", mode='w')
 file.close()
 
 
-with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}.txt", "a", buffering=1) as file1:  # line-buffered in text mode
+with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}_nDAGs{NUM_RANDOM_DAGS}_nOrders{NUM_ORDERS}.txt", "a", buffering=1) as file1:  # line-buffered in text mode
 
    
         

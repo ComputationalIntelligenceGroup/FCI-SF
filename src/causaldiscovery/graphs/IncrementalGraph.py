@@ -12,7 +12,7 @@ from causallearn.graph.GraphNode import GraphNode
 from causallearn.graph.Node import Node
 import numpy as np
 
-import auxiliary as aux
+import causaldiscovery.utils.auxiliary as aux
 
 
 

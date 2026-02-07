@@ -17,6 +17,10 @@ def gaussian_entropy(cov, base: float =None):
 
 def gaussian_mi_from_cov_blocks(Sxx, Syy, Sxy, base: float =None):
     """Mutual information for jointly Gaussian X,Y given block covariances."""
+    
+    eps = 1e-6
+    Sxx += eps * np.eye(Sxx.shape[0])
+    Syy += eps * np.eye(Syy.shape[0])
     # Use log-det ratio form for stability
     sign_x, logdet_x = np.linalg.slogdet(Sxx)
     sign_y, logdet_y = np.linalg.slogdet(Syy)

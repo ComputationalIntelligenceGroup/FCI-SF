@@ -15,7 +15,13 @@ from causallearn.graph.Edge import Edge
 
 from numpy import ndarray
 
-import auxiliary as aux
+import sys, pathlib
+repo_root = pathlib.Path(__file__).resolve().parents[3]
+sys.path.append(str(repo_root / "src"))
+
+import causaldiscovery.utils.auxiliary as aux
+
+
 
 
 

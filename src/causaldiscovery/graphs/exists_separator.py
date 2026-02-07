@@ -6,7 +6,7 @@ from causallearn.utils.DepthChoiceGenerator import DepthChoiceGenerator
 from typing import List, Set, Tuple, Dict
 from causallearn.utils.cit import *
 
-from IncrementalGraph import IncrementalGraph
+from causaldiscovery.graphs.IncrementalGraph import IncrementalGraph
 
 def _exists_separator(graph: IncrementalGraph, x:int, y:int,  mb_x: List[int], independence_test_method: CIT_Base, alpha: float = 0.05,  must_be:Tuple[int] = None, max_sepset_size: int = -1, verbose: bool = True):
     

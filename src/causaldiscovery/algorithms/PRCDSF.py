@@ -10,12 +10,15 @@ from causallearn.graph.Graph import Graph
 from causallearn.graph.GeneralGraph import GeneralGraph 
 from causallearn.utils.cit import *
 
-from noCache_CI_Test import myTest
+import sys, pathlib
+repo_root = pathlib.Path(__file__).resolve().parents[3]
+sys.path.append(str(repo_root / "src"))
 
-from IncrementalGraph import IncrementalGraph
-import hill_climbing as hc
+from causaldiscovery.CItest.noCache_CI_Test import myTest
+from causaldiscovery.graphs.IncrementalGraph import IncrementalGraph
+import causaldiscovery.algorithms.hill_climbing as hc
 
-def prcdsf_fs(data: ndarray, independence_test_method: CIT_Base, alpha: float = 0.05,  
+def prcdsf(data: ndarray, independence_test_method: CIT_Base, alpha: float = 0.05,  
               max_iter = 1e4, initial_graph: GeneralGraph = None,  verbose: bool = False,  new_node_names:List[str] = None,
               **kwargs) -> Tuple[Graph, int, float, float]:
     

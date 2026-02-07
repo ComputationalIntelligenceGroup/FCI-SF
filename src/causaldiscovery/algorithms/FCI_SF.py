@@ -15,9 +15,12 @@ from causallearn.utils.DepthChoiceGenerator import DepthChoiceGenerator
 from causallearn.utils.cit import *
 import causallearn.search.ConstraintBased.FCI as fci
 
-from noCache_CI_Test import myTest
+import sys, pathlib
+repo_root = pathlib.Path(__file__).resolve().parents[3]
+sys.path.append(str(repo_root / "src"))
 
-from FAS_FS import fas_fs 
+from causaldiscovery.CItest.noCache_CI_Test import myTest
+from causaldiscovery.algorithms.FAS_SF import fas_sf 
 
 
 
@@ -95,7 +98,7 @@ def removeByPossibleDsep(graph: Graph, independence_test_method: CIT, alpha: flo
     return num_CI, sep_size
 
 
-def fci_fs(dataset: ndarray, independence_test_method = fisherz, alpha: float = 0.05, 
+def fci_sf(dataset: ndarray, independence_test_method = fisherz, alpha: float = 0.05, 
            initial_sep_sets: Dict[Tuple[int, int], Set[int]] = None, initial_graph: GeneralGraph = None, 
            depth: int = -1, max_path_length: int = -1, verbose: bool = False, new_node_names:List[str] = None, 
            **kwargs) -> Tuple[Graph, int, float, float, List[Edge], Dict[Tuple(int, int)]]:
@@ -179,7 +182,7 @@ def fci_fs(dataset: ndarray, independence_test_method = fisherz, alpha: float = 
    
 
     # FAS (“Fast Adjacency Search”) is the adjacency search of the PC algorithm, used as a first step for the FCI algorithm.
-    graph, sep_sets, num_CI, sep_size = fas_fs(dataset, independence_test_method=independence_test_method, alpha=alpha, 
+    graph, sep_sets, num_CI, sep_size = fas_sf(dataset, independence_test_method=independence_test_method, alpha=alpha, 
                                            initial_graph= initial_graph, initial_sep_sets = initial_sep_sets,
                                          depth=depth, verbose=verbose, new_node_names = new_node_names)
     

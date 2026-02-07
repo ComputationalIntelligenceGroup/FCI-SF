@@ -25,14 +25,21 @@ from causallearn.utils.cit           import fisherz      # ∼O(n³) linear-Gaus
 from causallearn.graph.GeneralGraph import GeneralGraph 
 from cdt.data import AcyclicGraphGenerator
 
-from CSBS_FS import csbs_fs
-from PRCDSF_FS import prcdsf_fs
-from S_CDFSF_FS import s_cdfsf_fs
-from CSSU_FS import cssu_fs
-from FCI_FS import fci_fs
-import graphical_metrics as g_m
-from dag2pag import dag2pag
-from noCache_CI_Test import myTest
+import sys, pathlib
+repo_root = pathlib.Path(__file__).resolve().parents[3]
+sys.path.append(str(repo_root / "src"))
+print(repo_root)
+sys.path.append(str(repo_root / "src" / "external" / "causal-self-compatibility/src" ))
+
+from causaldiscovery.algorithms.CSBS import csbs
+from causaldiscovery.algorithms.PRCDSF import prcdsf
+from causaldiscovery.algorithms.S_CDFSF import s_cdfsf
+from causaldiscovery.algorithms.CSSU import cssu
+from causaldiscovery.algorithms.FCI_SF import fci_sf
+
+import causaldiscovery.metrics.graphical_metrics as g_m
+from causaldiscovery.graphs.dag2pag import dag2pag
+from causaldiscovery.CItest.noCache_CI_Test import myTest
 import os
 
 
@@ -73,7 +80,7 @@ except Exception:
 import argparse
 
 
-
+"""
 # Crear parser
 parser = argparse.ArgumentParser(description="Ejecuta experimento con parámetros configurables.")
 
@@ -98,7 +105,7 @@ NUM_INSTANCES = 375
 NUM_VARS = 10
 NUM_RANDOM_DAGS = 10
 NUM_ORDERS = 2
-"""
+
 
 INITIAL_P = 0.1
 
@@ -240,12 +247,12 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                             # === Instrumentación alrededor de cada llamada ===
                             
                             
-                            output_csbs = csbs_fs(data_marginal, independence_test_method=CI_test, alpha= ALPHA, initial_graph= output_csbs[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER) 
-                            output_prcdsf = prcdsf_fs(data_marginal, independence_test_method=CI_test, alpha= ALPHA,   initial_graph= output_prcdsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)
-                            output_scdfsf = s_cdfsf_fs(data_marginal, independence_test_method=CI_test, alpha= ALPHA,   initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
-                            output_cssu = cssu_fs(data_marginal, alpha= ALPHA,  initial_graph= output_cssu[0], new_node_names= new_names, verbose=False, max_iter= MAX_ITER)
-                            output_fci_fs = fci_fs(data_marginal, independence_test_method=CI_test,  initial_sep_sets = output_fci_fs[5], alpha= ALPHA,  initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
-                            output_fci_stable = fci_fs(data_marginal, independence_test_method=CI_test, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_node_names = names_marginal, verbose = False)
+                            output_csbs = csbs(data_marginal, independence_test_method=CI_test, alpha= ALPHA, initial_graph= output_csbs[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER) 
+                            output_prcdsf = prcdsf(data_marginal, independence_test_method=CI_test, alpha= ALPHA,   initial_graph= output_prcdsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)
+                            output_scdfsf = s_cdfsf(data_marginal, independence_test_method=CI_test, alpha= ALPHA,   initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
+                            output_cssu = cssu(data_marginal, alpha= ALPHA,  initial_graph= output_cssu[0], new_node_names= new_names, verbose=False, max_iter= MAX_ITER)
+                            output_fci_fs = fci_sf(data_marginal, independence_test_method=CI_test,  initial_sep_sets = output_fci_fs[5], alpha= ALPHA,  initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
+                            output_fci_stable = fci_sf(data_marginal, independence_test_method=CI_test, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_node_names = names_marginal, verbose = False)
                          
                             
                             

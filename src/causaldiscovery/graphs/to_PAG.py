@@ -4,7 +4,13 @@
 from IncrementalGraph import IncrementalGraph
 from typing import List
 
-from src.causal_graphs.pag import PAG
+import sys, pathlib
+repo_root = pathlib.Path(__file__).resolve().parents[3]
+
+
+sys.path.append(str(repo_root / "src" / "external" / "causal-self-compatibility/src" ))
+
+from causal_graphs.pag import PAG
 
 def to_PAG(model, names:List[str]):
     

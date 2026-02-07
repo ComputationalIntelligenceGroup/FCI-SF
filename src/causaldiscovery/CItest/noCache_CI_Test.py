@@ -19,10 +19,6 @@ class myTest:
         self.data = data
         self.correlation_matrix = np.corrcoef(data.T)
         self.sample_size, self.num_features = data.shape
-        #self.full_precision = np.linalg.inv(self.correlation_matrix)
-        
-        
-
    
     
     def __call__(self, X, Y, condition_set=None):
@@ -48,8 +44,6 @@ class myTest:
         Z = 0.5 * log((1 + r) / (1 - r))
         X = sqrt(self.sample_size - len(condition_set) - 3) * abs(Z)
         p = 2 * (1 - norm.cdf(abs(X)))
-        
-        #r, p = fast_partial_corr_jit_df(self.data, X, Y, condition_set)
         
         return p
     

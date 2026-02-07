@@ -15,17 +15,18 @@ import networkx as nx
 from causallearn.graph.GeneralGraph import GeneralGraph
 import causallearn.search.ConstraintBased.FCI as fci
 from causallearn.graph.Endpoint import Endpoint
+from causallearn.graph.Dag import Dag
 
 from causaldag import DAG
 
-from FCI_FS import fci_fs, removeByPossibleDsep
-from IncrementalGraph import IncrementalGraph
+from causaldiscovery.algorithms.FCI_SF import fci_sf, removeByPossibleDsep
+from causaldiscovery.graphs.IncrementalGraph import IncrementalGraph
 
 from causallearn.utils.cit import CIT_Base, NO_SPECIFIED_PARAMETERS_MSG
 from collections import Counter
 
 
-def dag2pag(ground_truth_DAG, obsVars: List[str], new = False) -> GeneralGraph:
+def dag2pag(ground_truth_DAG, obsVars: List[str]) -> GeneralGraph:
     
     
     data = np.empty(shape=(0, len(obsVars)))
@@ -92,7 +93,14 @@ def get_colliders_mag(mag):
 
 
 class D_Sep(CIT_Base):
+    
     def __init__(self, data,  name_index_mapping: Dict[str, int], true_dag, **kwargs):
+        
+        def transform(arr):
+            out = arr.copy()
+            out[arr == -1] = 1
+            out[arr == 1] = 0
+            return out
         '''
         Use d-separation as CI test, to ensure the correctness of constraint-based methods. (only used for tests)
         Parameters
@@ -101,7 +109,17 @@ class D_Sep(CIT_Base):
         true_dag:   nx.DiGraph object, the true DAG
         '''
         super().__init__(data, **kwargs)  # data is just a placeholder, not used in D_Separation
-        self.true_dag = true_dag
+        
+        if isinstance(true_dag, nx.DiGraph):
+            self.true_dag = true_dag
+        elif isinstance(true_dag, Dag):
+            self.true_dag = nx.DiGraph(transform(true_dag.graph))
+            names_transform = { v: node.name for node, v in true_dag.node_map.items()}
+            self.true_dag = nx.relabel_nodes(self.true_dag, names_transform, copy=False)
+            
+            
+        else:
+           raise TypeError(f"Error: unsupported type {type(true_dag)}")
         self.name_index_mapping = name_index_mapping
         
         # import networkx here violates PEP8; but we want to prevent unnecessary import at the top (it's only used here)

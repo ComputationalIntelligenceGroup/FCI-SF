@@ -13,16 +13,21 @@ from causallearn.graph.GeneralGraph import GeneralGraph
 
 from causallearn.utils.cit import *
 
-from IncrementalGraph import IncrementalGraph
-import hill_climbing as hc
+import sys, pathlib
+repo_root = pathlib.Path(__file__).resolve().parents[3]
+sys.path.append(str(repo_root / "src"))
 
-from SU import gaussian_su_from_samples
+
+from causaldiscovery.graphs.IncrementalGraph import IncrementalGraph
+import causaldiscovery.algorithms.hill_climbing as hc
+
+from causaldiscovery.CItest.SU import gaussian_su_from_samples #Note: technically speaking SU is not a CI test.
 import time
 
 
 
 
-def cssu_fs(data: ndarray, alpha: float = 0.1,  
+def cssu(data: ndarray, alpha: float = 0.1,  
             max_iter = 1e4, initial_graph: GeneralGraph = None,  verbose: bool = False,  new_node_names:List[str] = None, 
             **kwargs) -> Tuple[Graph, int, float, float]:
     

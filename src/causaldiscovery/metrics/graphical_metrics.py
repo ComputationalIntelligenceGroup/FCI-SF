@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import sys, pathlib
-repo_root = pathlib.Path(__file__).resolve().parents[1]
-sys.path.append(str(repo_root / "src" / "external" / "causal-self-compatibility" ))
+repo_root = pathlib.Path(__file__).resolve().parents[3]
+print(repo_root)
+sys.path.append(str(repo_root / "src" / "external" / "causal-self-compatibility/src" ))
 
 
 
@@ -12,8 +13,8 @@ from typing import Tuple, List, Iterable, Any, Union, Dict, Set
 import networkx as nx
 
 
-from src.causal_graphs.pag import PAG
-from src.causal_graphs.sc_causal_graph import SCCausalGraph
+from causal_graphs.pag import PAG
+from causal_graphs.sc_causal_graph import SCCausalGraph
 
 from causallearn.graph.Endpoint import Endpoint
 from causallearn.graph.GeneralGraph import GeneralGraph
@@ -21,11 +22,8 @@ from causallearn.graph.GeneralGraph import GeneralGraph
 
 
 
-from AdjacencyConfusion import AdjacencyConfusion
-
-
-
-from EndpointConfusion import EndpointConfusion
+from causaldiscovery.metrics.AdjacencyConfusion import AdjacencyConfusion
+from causaldiscovery.metrics.EndpointConfusion import EndpointConfusion
 
 
 ALGORITHMS = [ "CSBS", "PRCDSF", "S-CDFSF", "CSSU", "FCI-FS", "FCI-STABLE"]

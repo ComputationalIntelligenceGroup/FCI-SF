@@ -24,7 +24,7 @@ import causaldiscovery.algorithms.hill_climbing as hc
 
 def csbs(data: ndarray, independence_test_method: CIT_Base, alpha: float = 0.05,  
             max_iter = 1e4, initial_graph: GeneralGraph = None,  verbose: bool = False,  new_node_names:List[str] = None, 
-            **kwargs) -> Tuple[Graph, int, float, float]:
+            only_skel = False,  **kwargs) -> Tuple[Graph, int, float, float]:
     
     # Initialization
     
@@ -107,15 +107,22 @@ def csbs(data: ndarray, independence_test_method: CIT_Base, alpha: float = 0.05,
         for j_r, h_r in to_remove:
             mb.remove_if_exists(j_r, h_r)
     
+    if only_skel:
+        return mb, num_CI_tests, sepset_size
+    
     if verbose:
         print("CSBS: hill-climbing")
-        mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)
+    mb.G = hc.hill_climbing_search(data, skeleton = mb.G, max_iter = max_iter)
         
-    avg_sepset_size = sepset_size/num_CI_tests
-    total_exec_time = time.time() - initial_time
+        
+    
+
+    avg_sepset_size = sepset_size / num_CI_tests if num_CI_tests > 0 else 0.0
+    total_exec_time = time.perf_counter() - initial_time
     
     return mb.G, num_CI_tests, avg_sepset_size, total_exec_time
-            
+
+
 """
 Bibliography
 

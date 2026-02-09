@@ -11,6 +11,8 @@ from causallearn.graph.GeneralGraph import GeneralGraph
 from causallearn.graph.GraphNode import GraphNode
 from causallearn.graph.Node import Node
 import numpy as np
+from collections import deque
+
 
 import causaldiscovery.utils.auxiliary as aux
 
@@ -61,6 +63,9 @@ class IncrementalGraph:
         
         self.undirected()
         
+        self.graph_matrix =  self.G.graph != 0
+        self.graph_sq = self.graph_matrix @ self.graph_matrix
+        
         
         
        
@@ -79,22 +84,30 @@ class IncrementalGraph:
         self.old_nodes.extend(self.new_nodes)
         self.new_nodes = [node]
         self.G.add_node(node)
+        self.graph_matrix =  self.G.graph != 0
+        self.graph_sq = self.graph_matrix @ self.graph_matrix
         
     
     def add_edge_with_circles(self, i: int, j: int):
         
         nodes = self.G.get_nodes()
         self.G.add_edge(Edge(nodes[i], nodes[j], Endpoint.CIRCLE, Endpoint.CIRCLE))
+        self.graph_matrix =  self.G.graph != 0
+        self.graph_sq = self.graph_matrix @ self.graph_matrix
         
     def add_edge_directed(self, i: int, j: int):
         
         nodes = self.G.get_nodes()
         self.G.add_edge(Edge(nodes[i], nodes[j], Endpoint.CIRCLE, Endpoint.ARROW))
+        self.graph_matrix =  self.G.graph != 0
+        self.graph_sq = self.graph_matrix @ self.graph_matrix
         
     def add_edge_bidirected(self, i: int, j: int):
         
         nodes = self.G.get_nodes()
         self.G.add_edge(Edge(nodes[i], nodes[j], Endpoint.ARROW, Endpoint.ARROW))
+        self.graph_matrix =  self.G.graph != 0
+        self.graph_sq = self.graph_matrix @ self.graph_matrix
         
         
         
@@ -132,7 +145,9 @@ class IncrementalGraph:
                 #Create complete graph with new nodes
                 new_edge = Edge(self.new_nodes[i], self.new_nodes[j] , Endpoint.CIRCLE, Endpoint.CIRCLE)
                 self.G.add_edge(new_edge)
-                
+        
+        self.graph_matrix =  self.G.graph != 0
+        self.graph_sq = self.graph_matrix @ self.graph_matrix
                 
     def neighbors(self, i: int) -> np.ndarray:
         """Find the neighbors of node i in adjmat"""
@@ -154,21 +169,42 @@ class IncrementalGraph:
         edge = self.G.get_edge(self.G.nodes[x], self.G.nodes[y])
         if edge is not None:
             self.G.remove_edge(edge)
-        
-    
-                
-                
-    
-    
-    
-    
             
+        self.graph_matrix =  self.G.graph != 0
+        self.graph_sq = self.graph_matrix @ self.graph_matrix
             
-            
-        
-        
+    def get_edges_from_triangle(self) -> List[Tuple[int, int]]:
+        has_triplet = self.graph_matrix * self.graph_sq
+    
+        # only upper triangle (i < j)
+        i, j = np.where(np.triu(has_triplet, k=1) != 0)
+    
+        return list(zip(i.tolist(), j.tolist()))
+    
+    
 
-        
+                    
+    def reachable_nodes_without_edge(self, start, x, y):
+        """
+        Nodes reachable from `start` in G with the undirected edge (x,y) removed.
+        (We simulate removal during traversal, without mutating G.)
+        """
+        q = deque([start])
+        seen = {start}
+        while q:
+            u = q.popleft()
+            for v in self.neighbors(u):
+                # Skip traversing the forbidden edge in either direction
+                if (u == x and v == y) or (u == y and v == x):
+                    continue
+                if v not in seen:
+                    seen.add(v)
+                    q.append(v)
+        return seen
+    
+    from collections import deque
+
+
      
 
 

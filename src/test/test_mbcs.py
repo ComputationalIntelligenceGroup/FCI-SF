@@ -4,15 +4,13 @@ from causallearn.utils.cit           import fisherz      # ∼O(n³) linear-Gaus
 from causallearn.utils.GraphUtils    import GraphUtils
 import dowhy.datasets as ds          # DoWhy ≥ 0.10
 
+
 import numpy as np
+import time
 
 
 
-from causaldiscovery.algorithms.CSBS import csbs
-from causaldiscovery.algorithms.PRCDSF import prcdsf
-from causaldiscovery.algorithms.S_CDFSF import s_cdfsf
-from causaldiscovery.algorithms.CSSU import cssu
-from causaldiscovery.algorithms.FCI_SF import fci_sf
+from causaldiscovery.algorithms.MBCS import mbcs_skeleton
 from causaldiscovery.CItest.noCache_CI_Test import myTest
 
 
@@ -55,7 +53,7 @@ def draw_digraph(G, filename=None):
     plt.show()
 
 
-gen = AcyclicGraphGenerator('linear', npoints=100, nodes=50, dag_type='erdos', expected_degree= 2)
+gen = AcyclicGraphGenerator('linear', npoints=100, nodes=200, dag_type='erdos', expected_degree= 2)
 df, G = gen.generate()   # X: DataFrame, G: networkx.DiGraph
 
 draw_digraph(G, "Ground-Truth DAG")
@@ -63,10 +61,8 @@ draw_digraph(G, "Ground-Truth DAG")
 data   = df.values                   # numpy array, n×p
 names = df.columns
 
+CI_test = myTest(df)
 
-data1 = data[:, 0:25]
-names1 = names[ 0:25]
-names2 = names[ 25: ]
 
 """
 from pgmpy.utils import get_example_model
@@ -88,48 +84,29 @@ names1 = names[0:4]
 names2 = names[4:6]
 """
 
-k = 5
+k = 1
 
-g0, nCI0, avg_ss0, exec_t0 = csbs(data1,independence_test_method=fisherz, new_node_names= names1 ,verbose = False,  
-            max_iter = 1e3) 
+
+t0 = time.perf_counter()
+g0 = mbcs_skeleton(
+    data,
+    independence_test_method=CI_test,
+    new_node_names=names,
+    verbose=False
+)
+t1 = time.perf_counter()
+
+print(f"mbcs_skeleton took {t1 - t0:.4f} seconds")
 print("g0, OK!")
-g1, _, _, exec_t1 = prcdsf(data1,independence_test_method= fisherz,  new_node_names= names1 ,verbose = False,  
-            max_iter = 1e3)
-print("g1, OK!")
-g2, _, _, exec_t2 = s_cdfsf(data1,independence_test_method=fisherz , new_node_names= names1 ,verbose = False,  
-            max_iter = 1e3)
-print("g2, OK!")
 
-
-g3, _, _, exec_t3 = cssu(data1, alpha= 5e-2,  new_node_names= names1 ,verbose = True,  max_iter = 1e3)
-#print("g3, OK!")
-g4, _, _, exec_t4, _, _ = fci_sf(data1, independence_test_method=fisherz ,  new_node_names= names1 ,verbose = False)
-print("g4, OK!")
-
-graphs = [g0, g1, g2, g3, g4]
+graphs = [g0]
 
 
 for i in range(k):
-    GraphUtils.to_pydot(graphs[i]).write_png(f"testing_marginal_OAlg-1-{i}.png")
+    GraphUtils.to_pydot(graphs[i].G).write_png(f"testing_marginal_OAlg-1-{i}.png")
     
     
-g0, _, _, exec_t02 = csbs(data,independence_test_method=fisherz, initial_graph= g0, new_node_names= names2 ,verbose = False,  
-            max_iter = 1e3) 
-print("g0, OK!")
-g1, _, _, exec_t12 = prcdsf(data,independence_test_method=fisherz, initial_graph= g1 ,  new_node_names= names2 ,verbose = False,  
-            max_iter = 1e3)
-print("g1, OK!")
-g2, _, _, exec_t22 = s_cdfsf(data,independence_test_method=fisherz, initial_graph= g2 ,  new_node_names= names2 ,verbose = False,  
-            max_iter = 1e3)
-print("g2, OK!")
-g3, _, _, exec_t32 = cssu(data, alpha= 5e-2,  new_node_names= names2, initial_graph= g3 ,verbose = False,  max_iter = 1e3)
-#print("g3, OK!")
-g4, _, _, exec_t42, _, _ = fci_sf(data, independence_test_method=fisherz, initial_graph= g4 ,  new_node_names= names2 ,verbose = False)
-print("g4, OK!")
 
 
-
-for i in range(k):
-    GraphUtils.to_pydot(graphs[i]).write_png(f"testing_full_OAlg-1-{i}.png")
     
     

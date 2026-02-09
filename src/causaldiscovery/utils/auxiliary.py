@@ -1,5 +1,6 @@
 from causallearn.graph.GeneralGraph import GeneralGraph
 from typing import List, Tuple
+from itertools import combinations
 
 import numpy as np
 import random
@@ -56,8 +57,12 @@ def random_permutation(size: int) -> List[int]:
     return res
 
 
-
-    
+def powerset(s):
+    """All subsets of a set s (as sets)."""
+    s = list(s)
+    for r in range(len(s) + 1):
+        for comb in combinations(s, r):
+            yield set(comb)
     
     
 

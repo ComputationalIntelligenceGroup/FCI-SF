@@ -23,7 +23,6 @@ warnings.filterwarnings("error", message="The truth value of an empty array is a
 
 from causallearn.utils.cit           import fisherz      # ∼O(n³) linear-Gaussian CI test
 from causallearn.graph.GeneralGraph import GeneralGraph 
-from cdt.data import AcyclicGraphGenerator
 
 import sys, pathlib
 repo_root = pathlib.Path(__file__).resolve().parents[3]
@@ -35,12 +34,17 @@ from causaldiscovery.algorithms.CSBS import csbs
 from causaldiscovery.algorithms.PRCDSF import prcdsf
 from causaldiscovery.algorithms.S_CDFSF import s_cdfsf
 from causaldiscovery.algorithms.CSSU import cssu
+from causaldiscovery.algorithms.LiNGAM_SF import lingam_sf
 from causaldiscovery.algorithms.FCI_SF import fci_sf
+
 
 import causaldiscovery.metrics.graphical_metrics as g_m
 from causaldiscovery.graphs.dag2pag import dag2pag
 from causaldiscovery.CItest.noCache_CI_Test import myTest
+from causaldiscovery.utils.auxiliary import make_bn_truth_and_sample
 import os
+import argparse
+
 
 
 
@@ -77,10 +81,7 @@ except Exception:
     pass
 # --- FIN BLOQUE ---
 
-import argparse
 
-
-"""
 # Crear parser
 parser = argparse.ArgumentParser(description="Ejecuta experimento con parámetros configurables.")
 
@@ -103,9 +104,10 @@ NUM_ORDERS = args.numOrds
 numPVal = 0
 NUM_INSTANCES = 375
 NUM_VARS = 10
-NUM_RANDOM_DAGS = 10
-NUM_ORDERS = 2
+NUM_RANDOM_DAGS = 1
+NUM_ORDERS = 1
 
+"""
 
 INITIAL_P = 0.1
 
@@ -131,15 +133,19 @@ time_marginal = 0
 
 time_iter = 0
 
+# BASE RANDOM GENERATOR TO GUARANTEE REPRODUCIBILITY
+base_rng = np.random.default_rng(123)
+
+
 if NUM_VARS % NUM_PERCENTAGE != 0:
    raise AssertionError("NUM_VARS should be divisible by NUM_PERCENTAGE")
 
 # Empty the file
-file = open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}_nDAGs{NUM_RANDOM_DAGS}_nOrders{NUM_ORDERS}.txt", mode='w')
+file = open(f"../../../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}_nDAGs{NUM_RANDOM_DAGS}_nOrders{NUM_ORDERS}.txt", mode='w')
 file.close()
 
 
-with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}_nDAGs{NUM_RANDOM_DAGS}_nOrders{NUM_ORDERS}.txt", "a", buffering=1) as file1:  # line-buffered in text mode
+with open(f"../../../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}_nbSize{NEIGHBORHOOD_SIZE}_nDAGs{NUM_RANDOM_DAGS}_nOrders{NUM_ORDERS}.txt", "a", buffering=1) as file1:  # line-buffered in text mode
 
    
         
@@ -177,12 +183,13 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
             
             for j in range(0, NUM_RANDOM_DAGS):
                 # We halve NEIGHBORHOOD_SIZE because cdt doubles the expected neightborhood size () (We are wainting untill merge pull request #169 is accepted to solve this BUG #168)
-                ng_size = NEIGHBORHOOD_SIZE/2
-                gen = AcyclicGraphGenerator('linear', npoints=NUM_INSTANCES, nodes=NUM_VARS, dag_type='erdos', expected_degree = ng_size ) 
                 
-                df, digraph = gen.generate()
-                # Medir memoria tras generación del grafo
-                
+                digraph, df = make_bn_truth_and_sample(
+                    base_rng = base_rng ,
+                    num_vars = NUM_VARS,
+                    expected_degree = NEIGHBORHOOD_SIZE,
+                    n_samples = dataset_size
+                )                
                             
                 names = df.columns
              
@@ -203,6 +210,7 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                         output_prcdsf = (GeneralGraph([]), 0, 0, 0)
                         output_scdfsf = (GeneralGraph([]), 0, 0, 0)
                         output_cssu = (GeneralGraph([]), 0, 0, 0)
+                        output_lingam_sf = (GeneralGraph([]), 0, 0, 0)
                         output_fci_fs = (GeneralGraph([]), 0, 0, 0, [], {})
                         output_fci_stable = (GeneralGraph([]), 0, 0, 0, [], {})
                         
@@ -211,6 +219,7 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                         prcdsf_info = []
                         scdfsf_info = []
                         cssu_info = []
+                        lingam_sf_info = []
                         fci_fs_info = []
                         fci_stable_info = []
                         
@@ -251,18 +260,20 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                             output_prcdsf = prcdsf(data_marginal, independence_test_method=CI_test, alpha= ALPHA,   initial_graph= output_prcdsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)
                             output_scdfsf = s_cdfsf(data_marginal, independence_test_method=CI_test, alpha= ALPHA,   initial_graph= output_scdfsf[0], new_node_names= new_names ,verbose = False, max_iter = MAX_ITER)                    
                             output_cssu = cssu(data_marginal, alpha= ALPHA,  initial_graph= output_cssu[0], new_node_names= new_names, verbose=False, max_iter= MAX_ITER)
+                            output_lingam_sf = lingam_sf(data_marginal, independence_test_method=CI_test, alpha1= ALPHA, alpha2 = 0.001,  r = 0.7, initial_graph = output_lingam_sf[0], new_node_names= new_names,verbose = False, getMag = True  )
                             output_fci_fs = fci_sf(data_marginal, independence_test_method=CI_test,  initial_sep_sets = output_fci_fs[5], alpha= ALPHA,  initial_graph= output_fci_fs[0] ,  new_node_names= new_names ,verbose = False)
                             output_fci_stable = fci_sf(data_marginal, independence_test_method=CI_test, initial_sep_sets = {}, alpha= ALPHA,  initial_graph = GeneralGraph([]), new_node_names = names_marginal, verbose = False)
                          
                             
                             
-                            file1.write(f"Percentage: {percentage}. ExecTimes:  csbs - {output_csbs[3]}. prcdsf - {output_prcdsf[3]}. scdfsf - {output_scdfsf[3]}. cssu - {output_cssu[3]}. FCI-FS - {output_fci_fs[3]}. FCI - {output_fci_stable[3]}\n")
+                            file1.write(f"Percentage: {percentage}. ExecTimes:  csbs - {output_csbs[3]}. prcdsf - {output_prcdsf[3]}. scdfsf - {output_scdfsf[3]}. cssu - {output_cssu[3]}. LiNGAM-SF -  {output_lingam_sf[3]}. FCI-FS - {output_fci_fs[3]}. FCI - {output_fci_stable[3]}\n")
                             
                             #Metrics of the marginal models
                             csbs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_csbs[0], output_csbs))
                             prcdsf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_prcdsf[0], output_prcdsf))
                             scdfsf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_scdfsf[0], output_scdfsf))
                             cssu_info.extend(g_m.get_alg_marginal_info(ground_truth, output_cssu[0], output_cssu))
+                            lingam_sf_info.extend(g_m.get_alg_marginal_info(ground_truth, output_lingam_sf[0], output_lingam_sf))
                             fci_fs_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_fs[0], output_fci_fs))
                             fci_stable_info.extend(g_m.get_alg_marginal_info(ground_truth, output_fci_stable[0], output_fci_stable))
                             
@@ -272,14 +283,15 @@ with open(f"../../logs/log_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{NUM_VARS}
                         prcdsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, prcdsf_info))
                         scdfsf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, scdfsf_info))
                         cssu_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, cssu_info))
+                        lingam_sf_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, lingam_sf_info))
                         fci_fs_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_fs_info))
                         fci_stable_info.extend(g_m.get_self_comp_info(len(percentList), NUM_VARS, fci_stable_info))
                         
                        
-                        new_row = csbs_info + prcdsf_info + scdfsf_info + cssu_info + fci_fs_info + fci_stable_info
+                        new_row = csbs_info + prcdsf_info + scdfsf_info + lingam_sf_info + cssu_info + fci_fs_info + fci_stable_info
                         writer.writerow(new_row)
                         
-                        del data, df_permuted, csbs_info, prcdsf_info, scdfsf_info, cssu_info, fci_fs_info, fci_stable_info, new_row, output_csbs, output_prcdsf, output_scdfsf, output_cssu, output_fci_fs, output_fci_stable
+                        del data, df_permuted, csbs_info, prcdsf_info, scdfsf_info, cssu_info, lingam_sf_info, fci_fs_info, fci_stable_info, new_row, output_csbs, output_prcdsf, output_scdfsf, output_cssu, output_lingam_sf, output_fci_fs, output_fci_stable
                         
                         gc.collect()
                         

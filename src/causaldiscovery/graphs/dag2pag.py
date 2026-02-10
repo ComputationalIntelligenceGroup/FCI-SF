@@ -34,7 +34,7 @@ def dag2pag(ground_truth_DAG, obsVars: List[str]) -> GeneralGraph:
     independence_test_method = D_Sep(data, name_index_mapping = obsVars, true_dag=ground_truth_DAG)
     
 
-    output_fci = fci_fs(data, independence_test_method=independence_test_method, initial_sep_sets = {}, initial_graph = GeneralGraph([]), new_node_names = obsVars, verbose = False)
+    output_fci = fci_sf(data, independence_test_method=independence_test_method, initial_sep_sets = {}, initial_graph = GeneralGraph([]), new_node_names = obsVars, verbose = False)
         
        
         

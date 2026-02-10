@@ -29,6 +29,8 @@ from causaldiscovery.utils.orientation import orientation
 from causaldiscovery.algorithms.MBCS import mbcs_skeleton
 from causaldiscovery.algorithms.CSBS import csbs
 from causaldiscovery.CItest.noCache_CI_Test import myTest
+from causaldiscovery.graphs.dag2pag import dag2pag
+
 import networkx as nx
 
 Var = Union[int, str]
@@ -38,9 +40,13 @@ Pair = Tuple[Var, Var]
 
 
 def lingam_sf(data: ndarray, independence_test_method: CIT_Base, alpha1: float = 0.05,  alpha2: float = 0.001,  r = 0.7,
-            initial_graph: GeneralGraph = None, old_latents_pairs=None,  verbose: bool = False,  new_node_names:List[str] = None, **kwargs) -> Tuple[Graph, int, int]:
+            initial_graph: GeneralGraph = None, old_latents_pairs=None,  verbose: bool = False,  new_node_names:List[str] = None, getMag = False, **kwargs) -> Tuple[Graph, int, int]:
     
     nCI = 0 
+    
+    sep_size = 0
+    
+    initial_time = time.time()
     
     if initial_graph is None:
         initial_graph = GeneralGraph([])
@@ -51,14 +57,16 @@ def lingam_sf(data: ndarray, independence_test_method: CIT_Base, alpha1: float =
         Gt1, num_CI_tests, sepset_size = mbcs_skeleton(data = data, independence_test_method = independence_test_method, alpha = alpha1, 
                            verbose = verbose, new_node_names = new_node_names)
         nCI += num_CI_tests
+        sep_size += sepset_size
     else:
         Gt1, num_CI_tests, sepset_size = csbs(data, independence_test_method=independence_test_method, alpha= alpha1, 
                            initial_graph= initial_graph, new_node_names= new_node_names ,verbose = verbose, 
                            max_iter = 0, only_skel = True) 
         nCI += num_CI_tests
+        sep_size += sepset_size
         
-    
-    print("Skeleton done!")
+    if verbose:
+        print("Skeleton done!")
     
     
     Gt2, Lalter_nodes, T_pairs, num_CI_tests = icdplv(data, Gt1, r, alpha2, verbose=verbose)
@@ -73,8 +81,52 @@ def lingam_sf(data: ndarray, independence_test_method: CIT_Base, alpha1: float =
         )
     
     nCI += num_CI_tests
+    avg_sepset_size = sep_size/nCI
+    total_exec_time = time.time() - initial_time
+    
+    if getMag:
+        ground_truth_DAG, obsVars, latent_nodes = build_ground_truth_with_latents(Gt2,Lt_pairs)
         
-    return Gt2, Lt_pairs, nCI
+        mag = dag2pag(ground_truth_DAG, obsVars )
+        
+        return mag, nCI, avg_sepset_size, total_exec_time
+    
+        
+    return Gt2,  nCI, avg_sepset_size, total_exec_time
+
+
+
+
+def build_ground_truth_with_latents(Gt2: nx.DiGraph, Lt_pairs, latent_prefix="L"):
+    """
+    Gt2: nx.DiGraph with observed nodes and directed edges (estimated causality)
+    
+    Lt_pairs: iterable of pairs (u, v) where u, v are node names (strings)
+    
+    Returns:
+        ground_truth_DAG: nx.DiGraph with observed and latent nodes and corresponding edges
+        obsVars: list of observed node names
+        latent_nodes: list of created latent node names
+    """
+    ground_truth_DAG = Gt2.copy()
+    obsVars = list(Gt2.nodes())
+
+    latent_nodes = []
+    for k, (u, v) in enumerate(Lt_pairs, start=1):
+        L = f"{latent_prefix}{k}"
+        # evita colisión de nombres
+        while L in ground_truth_DAG:
+            k += 1
+            L = f"{latent_prefix}{k}"
+
+        ground_truth_DAG.add_node(L)
+        latent_nodes.append(L)
+
+        # Confusor: L -> u, L -> v
+        ground_truth_DAG.add_edge(L, u)
+        ground_truth_DAG.add_edge(L, v)
+    
+    return ground_truth_DAG, obsVars, latent_nodes
 
 def compute_residual(x: np.ndarray, y: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     """
@@ -201,15 +253,14 @@ def icdplv(
         nb = node_names[b]
 
         if (p1 > sig) and (p2 <= sig):
-            print("b -> a")
-            # b -> a
+           
             Gt.add_edge(nb, na)
         elif (p2 > sig) and (p1 <= sig):
-            print("a -> b")
+          
             # a -> b
             Gt.add_edge(na, nb)
         else:
-            print("Common confounder (append T)")
+           
             T.append((a, b))
             Lalter.add(a)
             Lalter.add(b)
@@ -227,7 +278,8 @@ def icdplv(
     counter = 0
     for (a, b) in T:
         counter += 1
-        print(f"Edge {counter} of {len(U)}")
+        if verbose:
+            print(f"Edge {counter} of {len(U)}")
         data_ab = X[:, [a, b]]  # (n_samples, 2)
         
         if verbose:
@@ -241,15 +293,12 @@ def icdplv(
         nb = node_names[b]
 
         if ori == 1:
-            print("Phase 2: ori == 1")
             # a -> b
             add_edge_if_no_cycle(na, nb)
         elif ori == -1:
-            print("Phase 2: ori == -1")
             # b -> a
             add_edge_if_no_cycle(nb, na)
         else:
-            print("Phase 2: ori == 0 (else)")
             # undecided: do nothing (equivalent to "delete undirected edge" for output graph)
             pass
 

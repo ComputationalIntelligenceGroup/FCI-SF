@@ -235,7 +235,8 @@ def orientation(
     # Now X is (n_features, n_samples)
     n, m = X.shape
     
-    print(f"X.shape: {n}, {m}")
+    if verbose:
+        print(f"X.shape: {n}, {m}")
     
     if batch_size is None:
         batch_size = m
@@ -249,9 +250,6 @@ def orientation(
     weights_concat = np.zeros((n, runs * n), dtype=np.float32)
 
     rng = np.random.default_rng(seed)
-    
-    if verbose:
-        print("Pass PCAwhite")
 
     for i in range(runs):
         idx = rng.integers(low=0, high=m, size=sample_num)  # with replacement

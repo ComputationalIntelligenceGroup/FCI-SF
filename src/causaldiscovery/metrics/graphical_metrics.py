@@ -26,7 +26,7 @@ from causaldiscovery.metrics.AdjacencyConfusion import AdjacencyConfusion
 from causaldiscovery.metrics.EndpointConfusion import EndpointConfusion
 
 
-ALGORITHMS = [ "CSBS", "PRCDSF", "S-CDFSF", "CSSU", "FCI-FS", "FCI-STABLE"]
+ALGORITHMS = ["CSBS", "PRCDSF", "S-CDFSF", "CSSU", "LiNGAM-SF", "FCI-FS", "FCI-STABLE"]
 GRAPHICAL_SCORE_TYPES = ["l", "a", "c", "t"]
 METRICS_NT = ["numCI", "numEdges", "avgSepSize", "execTime",  "HD", "ED", "SHD"]
 METRICS_T = ["TP", "FP", "TN", "FN", "PREC", "RECALL", "F1", "ACC", "COHEN"]

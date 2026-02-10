@@ -15,6 +15,7 @@ sys.path.append(str(repo_root / "src"))
 
 from causaldiscovery.algorithms.LiNGAM_SF import lingam_sf
 from causaldiscovery.CItest.noCache_CI_Test import myTest
+from causaldiscovery.utils.auxiliary import make_bn_truth_and_sample
 
 
 
@@ -26,6 +27,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from cdt.data import AcyclicGraphGenerator
 
+# BASE RANDOM GENERATOR TO GUARANTEE REPRODUCIBILITY
+base_rng = np.random.default_rng(123)
 
 def draw_digraph(G, filename=None):
     # choose a layout
@@ -56,25 +59,50 @@ def draw_digraph(G, filename=None):
     plt.show()
 
 
-gen = AcyclicGraphGenerator('linear', npoints=12000, nodes=50, dag_type='erdos', expected_degree= 1)
-df, G = gen.generate()   # X: DataFrame, G: networkx.DiGraph
+digraph, df = make_bn_truth_and_sample(
+    base_rng = base_rng ,
+    num_vars = 50,
+    expected_degree = 2,
+    n_samples = 8000
+)       
 
-draw_digraph(G, "Ground-Truth DAG")
+#draw_digraph(digraph, "Ground-Truth DAG")
+
 
 data   = df.values                   # numpy array, n×p
 names = df.columns
 
+
+data1 = data[:, 0:10]
+names1 = names[ 0:10]
+names2 = names[ 10: ]
+
 CI_test = myTest(df)
 
 t0 = time.perf_counter()
-g0, Lt,T, numCItest = lingam_sf(
-    data,
+mag, nCI, avg_sepset_size, total_exec_time = lingam_sf(
+    data1,
     independence_test_method=CI_test,
-    new_node_names=names,
+    new_node_names=names1,
     alpha1 = 0.05,
-    verbose=False
+    verbose=False,
+    getMag = True
 )
 t1 = time.perf_counter()
+
+print("Primeras 10 var")
+
+mag, nCI, avg_sepset_size, total_exec_time = lingam_sf(
+    data,
+    independence_test_method=CI_test,
+    initial_graph = mag,
+    new_node_names=names2,
+    alpha1 = 0.05,
+    verbose=False,
+    getMag = True
+)
+
+t2 = time.perf_counter()
 
 print(f"LiNGAM-SF took {t1 - t0:.4f} seconds")
 print("g0, OK!")

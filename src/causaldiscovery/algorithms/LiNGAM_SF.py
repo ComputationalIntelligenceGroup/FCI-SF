@@ -8,7 +8,7 @@ Created on Sun Feb  8 16:19:49 2026
 from __future__ import annotations
 
 import warnings
-from typing import Dict, FrozenSet, Tuple, List
+from typing import Dict, FrozenSet, Tuple, List, Union, Iterable, Set, Optional
 from numpy import ndarray
 import numpy as np
 import time
@@ -31,12 +31,14 @@ from causaldiscovery.algorithms.CSBS import csbs
 from causaldiscovery.CItest.noCache_CI_Test import myTest
 import networkx as nx
 
+Var = Union[int, str]
+Pair = Tuple[Var, Var]
 
 # mb.G, num_CI_tests, avg_sepset_size, total_exec_time
 
 
 def lingam_sf(data: ndarray, independence_test_method: CIT_Base, alpha1: float = 0.05,  alpha2: float = 0.001,  r = 0.7,
-            initial_graph: GeneralGraph = None,  verbose: bool = False,  new_node_names:List[str] = None, **kwargs) -> Tuple[Graph, int, int]:
+            initial_graph: GeneralGraph = None, old_latents_pairs=None,  verbose: bool = False,  new_node_names:List[str] = None, **kwargs) -> Tuple[Graph, int, int]:
     
     nCI = 0 
     
@@ -57,12 +59,22 @@ def lingam_sf(data: ndarray, independence_test_method: CIT_Base, alpha1: float =
         
     
     print("Skeleton done!")
-         
-    Gt2, Lt2,T, num_CI_tests = icdplv(data,Gt1,  r, alpha2, verbose = verbose)
+    
+    
+    Gt2, Lalter_nodes, T_pairs, num_CI_tests = icdplv(data, Gt1, r, alpha2, verbose=verbose)
+    
+    nCI += num_CI_tests
+
+    Lt_pairs, LC_map, num_CI_tests = dlc_pairwise(
+        G=Gt2,
+        X=data,
+        Lalter_pairs=T_pairs,         
+        sig=alpha2,
+        )
     
     nCI += num_CI_tests
         
-    return Gt2, Lt2, T, num_CI_tests
+    return Gt2, Lt_pairs, nCI
 
 def compute_residual(x: np.ndarray, y: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     """
@@ -211,8 +223,11 @@ def icdplv(
             return False
         Gt.add_edge(u, v)
         return True
-
+    
+    counter = 0
     for (a, b) in T:
+        counter += 1
+        print(f"Edge {counter} of {len(U)}")
         data_ab = X[:, [a, b]]  # (n_samples, 2)
         
         if verbose:
@@ -242,4 +257,143 @@ def icdplv(
 
 
 
- 
+# Reusa tu compute_residual y myTest
+# from causaldiscovery.CItest.noCache_CI_Test import myTest
+
+
+
+
+def _as_pairs(pairs: Iterable[Pair]) -> Set[Pair]:
+    """Normaliza pares: (a,b) con a!=b, y ordena para evitar duplicados (a,b) vs (b,a)."""
+    out: Set[Pair] = set()
+    for a, b in pairs:
+        if a == b:
+            continue
+        # orden canónico para tratar el confounder latente como no-direccional
+        out.add((a, b) if str(a) < str(b) else (b, a))
+    return out
+
+def _common_parents(G: nx.DiGraph, a: Var, b: Var) -> Set[Var]:
+    """Padres comunes observados: pa -> a y pa -> b."""
+    if a not in G or b not in G:
+        return set()
+    return set(G.predecessors(a)).intersection(set(G.predecessors(b)))
+
+
+def _prop1_says_no_latent(x: np.ndarray, y: np.ndarray, sig: float) -> bool:
+    """
+    Implementa el chequeo tipo Proposition 1 usado en tu icdplv:
+      ra_y = res(x|y), rb_x = res(y|x)
+      Si exactamente una independencia se cumple (p>sig) y la otra no (p<=sig),
+      interpretamos relación causal (estructura 1) => NO latent confounder.
+    """
+    ra_y = compute_residual(x, y)
+    rb_x = compute_residual(y, x)
+
+    df = pd.DataFrame({"x": x, "y": y, "ra_y": ra_y, "rb_x": rb_x})
+    ci = myTest(df)
+
+    # índices columnas: x=0,y=1,ra_y=2,rb_x=3
+    p1 = ci(2, 1, set())  # ra_y ⟂ y ?
+    p2 = ci(3, 0, set())  # rb_x ⟂ x ?
+
+    # "estructura 1" (orientable) => no confounder latente necesario
+    if (p1 > sig and p2 <= sig) or (p2 > sig and p1 <= sig):
+        return True
+    return False
+
+
+def dlc_pairwise(
+    G: nx.DiGraph,
+    X: np.ndarray,
+    Lalter_pairs: Iterable[Pair],
+    sig: float = 0.001,
+    old_latents_pairs: Optional[Iterable[Pair]] = None,
+    copy_data: bool = True,
+) -> Tuple[Set[Pair], Dict[Var, Set[Var]]]:
+    """
+    DLC manteniendo SIEMPRE latentes por pares (sin agrupar por Property 2).
+
+    Parameters
+    ----------
+    G : nx.DiGraph
+        Grafo causal actual (dirigido).
+    X : ndarray (n_samples, p)
+        Datos observados. Si usas índices, deben corresponder a columnas de X.
+    Lalter_pairs : iterable de (vi, vj)
+        Candidatos a confounder latente por pares.
+        (Recomendado: usa T de icdplv, que ya son pares.)
+    sig : float
+        Umbral de significación para el chequeo de Prop. 1.
+    old_latents_pairs : iterable de (vi, vj)
+        Latentes anteriores (L_{t-1}) en formato por pares.
+    copy_data : bool
+        Si True, no modifica X original; trabaja sobre copia interna.
+
+    Returns
+    -------
+    Lt_pairs : set de (vi, vj)
+        Pares finales retenidos como confounders latentes.
+    LC_map : dict var -> set(confusores observados)
+        Mapa de confusores observados usados para residualizar.
+    num_CI_test: int
+        Number of CI tests.
+    """
+    if X.ndim != 2:
+        raise ValueError("X must be 2D (n_samples, p)")
+        
+    num_CI_test = 0
+
+    Xwork = X.copy() if copy_data else X
+
+    # 1) Inicialización + unión con L_{t-1}
+    cand = _as_pairs(Lalter_pairs)
+    if old_latents_pairs is not None:
+        cand |= _as_pairs(old_latents_pairs)
+
+    # 2) Construir LC(var): confusores observados (padres comunes) por cada extremo
+    LC_map: Dict[Var, Set[Var]] = {}
+    for a, b in cand:
+        parents = _common_parents(G, a, b)
+        if parents:
+            LC_map.setdefault(a, set()).update(parents)
+            LC_map.setdefault(b, set()).update(parents)
+
+    # 3) Residualizar cada variable t por sus confusores observados LC(t)
+    #    (igual que Matlab: sucesivamente para cada parent)
+    for t, parents in LC_map.items():
+        # si t es nombre, no puedes indexar X: en ese caso, necesitas un mapping nombre->col
+        if not isinstance(t, (int, np.integer)):
+            raise TypeError(
+                "dlc_pairwise: si usas nombres de nodos (str), "
+                "necesitas convertirlos a índices de columna antes de llamar."
+            )
+        xt = Xwork[:, int(t)]
+        for pa in parents:
+            if not isinstance(pa, (int, np.integer)):
+                raise TypeError(
+                    "dlc_pairwise: confusores observados deben ser índices si X es matriz."
+                )
+            xt = compute_residual(xt, Xwork[:, int(pa)])
+        Xwork[:, int(t)] = xt
+
+    # 4) Re-chequear cada par tras eliminar confusores observados.
+    #    Si Prop1 indica estructura 1 (orientable), eliminamos el candidato.
+    kept: Set[Pair] = set()
+    for a, b in cand:
+        if not (isinstance(a, (int, np.integer)) and isinstance(b, (int, np.integer))):
+            raise TypeError(
+                "dlc_pairwise: pares deben ser índices de columna si X es matriz."
+            )
+        xa = Xwork[:, int(a)]
+        xb = Xwork[:, int(b)]
+        
+        
+
+        no_latent = _prop1_says_no_latent(xa, xb, sig=sig)
+        num_CI_test += 2
+        if not no_latent:
+            kept.add((a, b) if str(a) < str(b) else (b, a))
+
+    return kept, LC_map, num_CI_test
+

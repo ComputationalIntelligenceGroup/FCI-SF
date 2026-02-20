@@ -89,14 +89,25 @@ METRICS_SC = ["SCHD", "SCHDn", "SCED", "SCEDn", "SCSHD", "SCSHDn, SCF1, SCP, SCR
 
 def get_metrics_nt(ground_truth: GeneralGraph, est_pag: PAG, alg_output: Tuple[Any]) :
     
-   
+    if type(est_pag) == GeneralGraph: # est_graph is a PAG
+        est_pag = PAG(est_pag)
+    elif type(est_pag) != PAG:
+        raise NotImplementedError()
+    
+    if type(ground_truth) == nx.DiGraph: # ground_truth is a GeneralGraph
+        ground_truth = est_pag._dag_to_pag(ground_truth)
+       
+    elif type(ground_truth) == PAG:
+        ground_truth = ground_truth.graph
+    elif type(ground_truth) != GeneralGraph:
+        raise NotImplementedError()
     
     res = []
     
-    res.append(alg_output[1]) #numCI
-    res.append(len(est_pag.graph.get_graph_edges())) # numEdges
-    res.append(alg_output[2]) # avgSepSize
-    res.append(alg_output[3]) # execTime
+    res.append(alg_output[1]) #numCI res[0]
+    res.append(len(est_pag.graph.get_graph_edges())) # numEdges res[1]
+    res.append(alg_output[2]) # avgSepSize res[2]
+    res.append(alg_output[3]) # execTime res[3]
     
     
     
@@ -104,13 +115,28 @@ def get_metrics_nt(ground_truth: GeneralGraph, est_pag: PAG, alg_output: Tuple[A
     adj_errors, endpoint_errors = shd_marginal(ground_truth, est_pag)
     shd_endpoint = adj_errors + endpoint_errors
     
-    res.append(adj_errors) # HD
-    res.append(endpoint_errors) # ED
-    res.append(shd_endpoint) # SHD
+    res.append(adj_errors) # HD res[4]
+    res.append(endpoint_errors) # ED res[5]
+    res.append(shd_endpoint) # SHD res[6]
+
+    
     
     return res
 
 def get_metrics_t(ground_truth: GeneralGraph, est_graph: PAG) :
+    
+    if type(est_graph) == GeneralGraph: # est_graph is a PAG
+        est_graph = PAG(est_graph)
+    elif type(est_graph) != PAG:
+        raise NotImplementedError()
+    
+    if type(ground_truth) == nx.DiGraph: # ground_truth is a GeneralGraph
+        ground_truth = est_graph._dag_to_pag(ground_truth)
+       
+    elif type(ground_truth) == PAG:
+        ground_truth = ground_truth.graph
+    elif type(ground_truth) != GeneralGraph:
+        raise NotImplementedError()
     
     
     
@@ -135,7 +161,7 @@ def get_metrics_t(ground_truth: GeneralGraph, est_graph: PAG) :
   
     link_cohen = (link_acc - val)/(1 - val) if val != 1 else 1
     
-    
+    # 0:TP, 1:FP, 2:TN, 3:FN, Precission, Recall, F1, Accuracy, Cohen
     
     res = [linkConfusion.get_adj_tp(), linkConfusion.get_adj_fp(), linkConfusion.get_adj_tn(), 
            linkConfusion.get_adj_fn(), link_prec, link_recall, link_f1, link_acc, link_cohen]

@@ -118,7 +118,7 @@ def csbs(data: ndarray, independence_test_method: CIT_Base, alpha: float = 0.05,
     
 
     avg_sepset_size = sepset_size / num_CI_tests if num_CI_tests > 0 else 0.0
-    total_exec_time = time.perf_counter() - initial_time
+    total_exec_time = time.time() - initial_time
     
     return mb.G, num_CI_tests, avg_sepset_size, total_exec_time
 

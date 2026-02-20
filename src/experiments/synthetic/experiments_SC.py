@@ -218,7 +218,6 @@ with open(f"../../../../logs/log_SC_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{
                             data_marginal = data[:, start_pos:end_pos]
                             names_marginal = copied_names[start_pos: end_pos]                            
                             
-                            print("i_pl:  ",i_pl, start_pos, end_pos,  "names: ", names_marginal )
                             time_marginal0 = time.time()
                             ground_truth = dag2pag(digraph, names_marginal)
                             time_marginal += time.time() - time_marginal0

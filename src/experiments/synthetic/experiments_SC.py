@@ -93,16 +93,12 @@ numPVal = args.numPVal
 NUM_INSTANCES = args.numInstances
 NUM_VARS = args.numVars
 NUM_RANDOM_DAGS = args.numDAGs
-
-
 """
-numPVal = 0
+
+numPVal = 1
 NUM_INSTANCES = 1e3
 NUM_VARS = 600
-NUM_RANDOM_DAGS = 1
-
-
-
+NUM_RANDOM_DAGS = 1e3
 
 INITIAL_P = 0.1
 
@@ -114,11 +110,7 @@ MAX_ITER = 1e3
 # Do not touch this parameter
 NUM_DATASET_SIZES = 1
 
-
-
-NUM_PERCENTAGES = [12, 15, 20, 30, 60, 120]
-
-
+NUM_PERCENTAGES = [6, 12, 15, 20, 30, 60, 120]
 
 percentages = [[round(1/num_sep, 2) for k in range(num_sep)] for num_sep in NUM_PERCENTAGES]
 
@@ -165,9 +157,13 @@ with open(f"../../../../logs/log_SC_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{
                         percentage = percentList[i_pl]
                         suffix = "_" + alg_name + "_" + str(int(percentage*NUM_VARS)) + "_" + str(int(i_pl))
                         
-                        for metric_nt in ["HD", "SHD"]:
+                        # 0:TP, 1:FP, 2:TN, 3:FN,
+                        for metric_nt in ["HD", "SHD", "NE", "TP", "FP", "TN", "FN"]:
                             column_name = metric_nt + suffix
                             column_names.append(column_name)
+                            
+                            
+                       
         
             sumar = 0
             writer.writerow(column_names)
@@ -240,8 +236,10 @@ with open(f"../../../../logs/log_SC_pVal{numPVal}_dataSize{NUM_INSTANCES}_nVars{
                             
                             #Metrics of the marginal models
                             
-                            fci_stable_res = g_m.get_metrics_nt(ground_truth, output_fci_stable[0], output_fci_stable)
-                            fci_stable_HD_SHD = [fci_stable_res[4], fci_stable_res[6]]
+                            fci_stable_res_nt = g_m.get_metrics_nt(ground_truth, output_fci_stable[0], output_fci_stable)
+                            fci_stable_res_t =g_m.get_metrics_t(ground_truth,  output_fci_stable[0])
+                           
+                            fci_stable_HD_SHD = [fci_stable_res_nt[4], fci_stable_res_nt[6], fci_stable_res_nt[1],fci_stable_res_t[0], fci_stable_res_t[1], fci_stable_res_t[2], fci_stable_res_t[3] ]
 
                             fci_stable_info.extend(fci_stable_HD_SHD)
                             
